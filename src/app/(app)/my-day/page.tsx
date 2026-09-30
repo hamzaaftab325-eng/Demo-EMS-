@@ -1,15 +1,10 @@
-import { PhaseNotice } from "@/components/shared/phase-notice";
+import { MyDayClient } from "@/components/my-day/my-day-client";
 import { requireCurrentProfile } from "@/lib/auth/current-profile";
+import { getMyDayState } from "@/lib/my-day/state";
 
 export default async function MyDayPage() {
-  const profile = await requireCurrentProfile();
+  await requireCurrentProfile();
+  const state = await getMyDayState();
 
-  return (
-    <PhaseNotice
-      title={`Hi ${profile.full_name}`}
-      subtitle="My Day & Scrum"
-      phase={4}
-      description="The old sample tasks and fake timeline were removed. Phase 4 will connect this approved UI flow to the real scrum, workday, break and meeting tables."
-    />
-  );
+  return <MyDayClient state={state} />;
 }

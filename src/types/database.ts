@@ -1531,6 +1531,43 @@ export type Database = {
         }
         Returns: undefined
       }
+      my_day_add_cycle_item: {
+        Args: {
+          p_description?: string
+          p_project_code: string
+          p_starting_percent?: number
+          p_title: string
+        }
+        Returns: Json
+      }
+      my_day_add_obstacle: { Args: { p_description: string }; Returns: string }
+      my_day_end_interval: { Args: never; Returns: Json }
+      my_day_get_state: { Args: never; Returns: Json }
+      my_day_sign_back_in: { Args: never; Returns: Json }
+      my_day_sign_in: {
+        Args: {
+          p_existing_item_ids?: string[]
+          p_new_backlog_items?: Json
+          p_new_cycle_items?: Json
+          p_obstacle?: string
+        }
+        Returns: Json
+      }
+      my_day_sign_off: {
+        Args: { p_items?: Json; p_obstacle?: string }
+        Returns: Json
+      }
+      my_day_start_interval: {
+        Args: {
+          p_interval_type: Database["public"]["Enums"]["interval_type"]
+          p_notes?: string
+        }
+        Returns: Json
+      }
+      my_day_update_progress: {
+        Args: { p_entry_item_id: string; p_note?: string; p_percent: number }
+        Returns: Json
+      }
     }
     Enums: {
       app_role: "employee" | "manager" | "director" | "super_admin"

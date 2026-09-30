@@ -4,7 +4,7 @@ Production Employee Management System for eMarketSelect.
 
 ## Current status
 
-**Phase 3 — Employees & Company Structure: COMPLETE**
+**Phase 4 — My Day & Scrum: IN PROGRESS**
 
 Phase 1 established the production Next.js foundation. Phase 2 added real Supabase authentication and protected role-based access. Phase 3 now connects the organization layer to live Supabase data.
 
@@ -62,3 +62,23 @@ Only the Supabase URL and publishable key belong in browser-visible environment 
 - Employee can see their own scoped data.
 
 The approved roadmap is stored in `docs/EMS_Production_Plan_FINAL.docx`.
+
+
+## Phase 4
+
+My Day & Scrum is now backed by transactional Supabase workflows:
+
+- Sign in with a required scrum cycle
+- Previous signed-off scrum visibility
+- Carry-over and backlog selection
+- New cycle and backlog items
+- Progress history
+- Sign-in, during-day, and sign-off obstacles
+- Break and meeting intervals
+- Sign off with final percentages and notes
+- Incomplete items remain active for the next cycle
+- 100% items close as completed
+- Sign back in on the same work date
+- Real timeline from attendance events and work intervals
+
+Phase 5 will add heartbeat, idle/away detection, official attendance calculations, late/core-hour rules, and manager attendance views.
