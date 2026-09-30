@@ -4,7 +4,7 @@ Production Employee Management System for eMarketSelect.
 
 ## Current status
 
-**Phase 4 — My Day & Scrum: IN PROGRESS**
+**Phase 4 — My Day & Scrum: COMPLETE**
 
 Phase 1 established the production Next.js foundation. Phase 2 added real Supabase authentication and protected role-based access. Phase 3 now connects the organization layer to live Supabase data.
 
@@ -82,3 +82,10 @@ My Day & Scrum is now backed by transactional Supabase workflows:
 - Real timeline from attendance events and work intervals
 
 Phase 5 will add heartbeat, idle/away detection, official attendance calculations, late/core-hour rules, and manager attendance views.
+
+
+## Next
+
+**Phase 5 — Attendance & Presence**
+
+Phase 5 will make official attendance calculations and realtime status live: heartbeat, idle/away, attendance status, target hours, break totals, late/core-hour rules, attendance corrections, and the management Live View.
