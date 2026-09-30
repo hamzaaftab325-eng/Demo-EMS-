@@ -4,7 +4,7 @@ import Image from "next/image";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { LogOut, Menu, Moon } from "lucide-react";
 import { logout } from "@/app/auth/actions";
-import { NavigationLinks } from "@/components/layout/navigation-links";
+import { NavigationLinks } from "@/components/layout/navigation-links";\nimport { PresenceHeartbeat } from "@/components/presence/presence-heartbeat";
 import { roleLabel } from "@/lib/navigation";
 import type { CurrentProfile } from "@/lib/auth/current-profile";
 
@@ -48,7 +48,7 @@ export function AppShell({
   }
 
   return (
-    <div className="app">
+    <div className="app">\n      <PresenceHeartbeat />
       {menuOpen ? (
         <button
           className="mobile-backdrop"

@@ -175,7 +175,11 @@ export type Database = {
           default_daily_target_minutes: number
           default_schedule_id: string | null
           grace_period_minutes: number
+          heartbeat_interval_seconds: number
+          heartbeat_stale_minutes: number
           id: number
+          presence_away_minutes: number
+          presence_idle_minutes: number
           require_final_request_approval: boolean
           require_scrum_for_signin: boolean
           require_scrum_for_signoff: boolean
@@ -190,7 +194,11 @@ export type Database = {
           default_daily_target_minutes?: number
           default_schedule_id?: string | null
           grace_period_minutes?: number
+          heartbeat_interval_seconds?: number
+          heartbeat_stale_minutes?: number
           id?: number
+          presence_away_minutes?: number
+          presence_idle_minutes?: number
           require_final_request_approval?: boolean
           require_scrum_for_signin?: boolean
           require_scrum_for_signoff?: boolean
@@ -205,7 +213,11 @@ export type Database = {
           default_daily_target_minutes?: number
           default_schedule_id?: string | null
           grace_period_minutes?: number
+          heartbeat_interval_seconds?: number
+          heartbeat_stale_minutes?: number
           id?: number
+          presence_away_minutes?: number
+          presence_idle_minutes?: number
           require_final_request_approval?: boolean
           require_scrum_for_signin?: boolean
           require_scrum_for_signoff?: boolean
@@ -1432,12 +1444,23 @@ export type Database = {
           attendance_status:
             | Database["public"]["Enums"]["attendance_status"]
             | null
+          break_minutes: number
+          calculated_at: string | null
           closed_at: string | null
           created_at: string
+          early_leave_minutes: number
           employee_id: string
+          final_sign_off_at: string | null
+          first_sign_in_at: string | null
+          gross_minutes: number
           id: string
+          late_minutes: number
+          meeting_minutes: number
+          net_work_minutes: number
           notes: string | null
+          overtime_minutes: number
           schedule_id: string | null
+          scheduled_minutes: number
           status: Database["public"]["Enums"]["workday_status"]
           timezone: string
           updated_at: string
@@ -1447,12 +1470,23 @@ export type Database = {
           attendance_status?:
             | Database["public"]["Enums"]["attendance_status"]
             | null
+          break_minutes?: number
+          calculated_at?: string | null
           closed_at?: string | null
           created_at?: string
+          early_leave_minutes?: number
           employee_id: string
+          final_sign_off_at?: string | null
+          first_sign_in_at?: string | null
+          gross_minutes?: number
           id?: string
+          late_minutes?: number
+          meeting_minutes?: number
+          net_work_minutes?: number
           notes?: string | null
+          overtime_minutes?: number
           schedule_id?: string | null
+          scheduled_minutes?: number
           status?: Database["public"]["Enums"]["workday_status"]
           timezone?: string
           updated_at?: string
@@ -1462,12 +1496,23 @@ export type Database = {
           attendance_status?:
             | Database["public"]["Enums"]["attendance_status"]
             | null
+          break_minutes?: number
+          calculated_at?: string | null
           closed_at?: string | null
           created_at?: string
+          early_leave_minutes?: number
           employee_id?: string
+          final_sign_off_at?: string | null
+          first_sign_in_at?: string | null
+          gross_minutes?: number
           id?: string
+          late_minutes?: number
+          meeting_minutes?: number
+          net_work_minutes?: number
           notes?: string | null
+          overtime_minutes?: number
           schedule_id?: string | null
+          scheduled_minutes?: number
           status?: Database["public"]["Enums"]["workday_status"]
           timezone?: string
           updated_at?: string
@@ -1531,6 +1576,17 @@ export type Database = {
         }
         Returns: undefined
       }
+      attendance_correct_day: {
+        Args: {
+          p_break_minutes?: number
+          p_employee_id: string
+          p_final_sign_off_at?: string
+          p_first_sign_in_at?: string
+          p_reason?: string
+          p_work_date: string
+        }
+        Returns: string
+      }
       my_day_add_cycle_item: {
         Args: {
           p_description?: string
@@ -1566,6 +1622,10 @@ export type Database = {
       }
       my_day_update_progress: {
         Args: { p_entry_item_id: string; p_note?: string; p_percent: number }
+        Returns: Json
+      }
+      presence_heartbeat: {
+        Args: { p_last_activity_at?: string }
         Returns: Json
       }
     }

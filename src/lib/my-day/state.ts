@@ -292,5 +292,33 @@ export async function getMyDayState() {
     throw new Error(error?.message ?? "Could not load My Day.");
   }
 
-  return parseState(data);
+  const state = parseState(data);
+
+  if (state.workday?.id) {
+    const { data: attendance, error: attendanceError } = await supabase
+      .from("workdays")
+      .select(
+        "first_sign_in_at, final_sign_off_at, scheduled_minutes, gross_minutes, break_minutes, meeting_minutes, net_work_minutes, late_minutes, overtime_minutes",
+      )
+      .eq("id", state.workday.id)
+      .maybeSingle();
+
+    if (attendanceError) {
+      throw new Error("Could not load today's attendance totals.");
+    }
+
+    if (attendance) {
+      state.workday.firstSignInAt = attendance.first_sign_in_at;
+      state.workday.finalSignOffAt = attendance.final_sign_off_at;
+      state.workday.scheduledMinutes = attendance.scheduled_minutes;
+      state.workday.grossMinutes = attendance.gross_minutes;
+      state.workday.breakMinutes = attendance.break_minutes;
+      state.workday.meetingMinutes = attendance.meeting_minutes;
+      state.workday.netWorkMinutes = attendance.net_work_minutes;
+      state.workday.lateMinutes = attendance.late_minutes;
+      state.workday.overtimeMinutes = attendance.overtime_minutes;
+    }
+  }
+
+  return state;
 }

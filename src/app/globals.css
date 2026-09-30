@@ -258,3 +258,36 @@ label.f input,label.f select{width:100%}
   .myday-signoff-row>input:last-child{grid-column:1/-1}
   .myday-summary{min-width:0}
 }
+
+.attendance-strip{min-width:160px;height:14px}
+.attendance-late{color:var(--away);font-size:11px;white-space:nowrap}
+.attendance-late-block{display:block;color:var(--away);font-size:11px;margin-top:2px}
+.attendance-net{font-weight:600}
+.attendance-empty{text-align:center;padding:30px!important}
+.attendance-legend{margin:12px 2px 0}
+.attendance-status-cell{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.attendance-corrected{font-size:10px;color:var(--mfg);border:1px solid var(--border);border-radius:999px;padding:1px 6px}
+.attendance-modal-backdrop{position:fixed;inset:0;z-index:90;background:rgba(0,0,0,.42);display:grid;place-items:center;padding:20px}
+.attendance-modal{width:min(620px,100%);background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:0 24px 80px rgba(0,0,0,.24);padding:20px}
+.attendance-modal-head{display:flex;justify-content:space-between;gap:16px;align-items:flex-start;margin-bottom:16px}
+.attendance-modal-head h2{font-size:19px}
+.attendance-modal-head p{margin:4px 0 0;font-size:13px}
+.attendance-correction-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+.attendance-correction-grid input[type=time],.attendance-correction-grid input[type=number]{width:100%;height:34px;border:1px solid var(--border);background:var(--surface);border-radius:7px;padding:0 10px}
+.attendance-modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:14px}
+.dashboard-link{font-size:13px;text-decoration:none}
+.department-presence{margin-bottom:12px}
+.department-presence:last-child{margin-bottom:0}
+.department-presence-head{display:flex;justify-content:space-between;gap:10px;margin-bottom:5px}
+.department-presence-head>span:first-child{font-weight:500}
+.department-presence-bar{height:10px}
+.dashboard-expected-row{justify-content:space-between!important;gap:12px}
+.dashboard-expected-row strong,.dashboard-hours-copy strong{display:block;font-size:13px;font-weight:500}
+.dashboard-expected-row small,.dashboard-hours-copy small{display:block;font-size:11px;margin-top:1px}
+.dashboard-flex-note{font-size:12.5px;margin:10px 0 0}
+.dashboard-hours-row{justify-content:space-between!important;gap:12px}
+.dashboard-hours-copy{min-width:0;flex:1}
+.dashboard-hours-bar{margin-top:6px}
+@media(max-width:760px){
+  .attendance-correction-grid{grid-template-columns:1fr}
+}

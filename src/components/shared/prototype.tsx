@@ -25,7 +25,7 @@ export function StatusPill({
   tone = "active",
 }: {
   label: string;
-  tone?: "active" | "idle" | "away" | "break" | "meeting" | "offline" | "ended";
+  tone?: "active" | "idle" | "away" | "break" | "meeting" | "offline" | "ended" | "red";
 }) {
   return (
     <span

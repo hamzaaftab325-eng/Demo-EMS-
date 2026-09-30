@@ -86,9 +86,9 @@ Phase 5 will add heartbeat, idle/away detection, official attendance calculation
 
 ## Next
 
-**Phase 5 — Attendance & Presence**
+**Phase 5 — Attendance & Presence: COMPLETE**
 
-Phase 5 will make official attendance calculations and realtime status live: heartbeat, idle/away, attendance status, target hours, break totals, late/core-hour rules, attendance corrections, and the management Live View.
+Phase 5 is live: heartbeat, idle/away, realtime team presence, attendance calculations, target hours, breaks, meetings, late/core-hour rules, CSV export, correction auditing, automatic inactivity sign-off, and manager Live View.
 
 
 ### Manager visibility after Phase 4
@@ -102,3 +102,25 @@ The dedicated management monitoring UI remains intentionally deferred:
 - Super Admin can access the full organization.
 
 This avoids building a second copy of scrum data: Phase 7 will read the same Phase 4 records.
+
+
+### Phase 5 production behavior
+
+- Heartbeat sends only a timestamp about once per minute while the EMS app is open.
+- Last activity stores only the time of the last click or key press inside EMS, never the content.
+- Active: activity within 5 minutes while heartbeat is current.
+- Idle: no EMS interaction for 5–15 minutes while heartbeat continues.
+- Away: activity is older than 15 minutes or the heartbeat is stale.
+- Break and meeting statuses come from the employee's explicit My Day controls.
+- Meetings count toward net worked time. Breaks do not.
+- Flexible schedules are evaluated against target minutes and are never late.
+- Fixed and flexible-core schedules use their configured start/core-start plus grace.
+- Automatic sign-off uses the existing 4-hour inactivity setting and preserves unfinished scrum progress.
+- Attendance corrections are Super Admin only, require a reason, and write an audit record.
+- Presence and attendance are RLS-scoped to self, reporting-chain managers/directors, and Super Admin.
+
+## Next phase
+
+**Phase 6 — Requests & Approvals**
+
+Leave, shift-change and hour-change requests, manager/final approval, leave ledger impact, schedule changes, notifications, and audited decisions.

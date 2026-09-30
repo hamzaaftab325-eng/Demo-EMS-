@@ -38,6 +38,15 @@ function formatTime(iso: string | null, timeZone: string) {
   }).format(new Date(iso));
 }
 
+function formatDuration(minutes: number) {
+  const safe = Math.max(0, Math.round(minutes));
+  const hours = Math.floor(safe / 60);
+  const rest = safe % 60;
+  if (hours === 0) return `${rest}m`;
+  if (rest === 0) return `${hours}h`;
+  return `${hours}h ${rest}m`;
+}
+
 function formatDate(date: string, timeZone: string) {
   const instant = new Date(`${date}T12:00:00Z`);
 
@@ -980,9 +989,12 @@ export function MyDayClient({ state }: { state: MyDayState }) {
               {formatTime(firstSignIn(state), state.timezone)}
             </Summary>
 
-            <Summary label="Current cycle">
-              {state.currentItems.length}{" "}
-              {state.currentItems.length === 1 ? "item" : "items"}
+            <Summary label="Worked today">
+              {state.workday
+                ? `${formatDuration(state.workday.netWorkMinutes)} of ${formatDuration(
+                    state.workday.scheduledMinutes,
+                  )}`
+                : "—"}
             </Summary>
 
             <Summary label="Schedule">{scheduleLabel(state)}</Summary>
