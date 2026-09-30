@@ -11,8 +11,21 @@ import {
   currentDateFor,
   formatDuration,
   getAttendanceTeam,
+  type TeamAttendanceRow,
 } from "@/lib/data/attendance";
 import { TEAM_ROLES } from "@/lib/navigation";
+
+const attendanceFilters = [
+  ["", "All"],
+  ["present", "Present"],
+  ["late", "Late"],
+  ["absent", "Absent"],
+  ["not_signed_in", "Not signed in"],
+  ["on_leave", "Leave"],
+  ["missing_sign_off", "Missing sign-off"],
+  ["holiday", "Holiday"],
+  ["weekend", "Weekend"],
+] as const;
 
 function initials(name: string) {
   return name
@@ -55,7 +68,12 @@ function inputTime(iso: string | null, timeZone: string) {
   return `${value("hour")}:${value("minute")}`;
 }
 
-function statusPill(status: string | null, hasSignIn: boolean) {
+function attendanceKey(row: TeamAttendanceRow) {
+  if (row.attendanceStatus) return row.attendanceStatus;
+  return row.firstSignInAt ? "present" : "not_signed_in";
+}
+
+function statusPill(status: string) {
   switch (status) {
     case "present":
       return <StatusPill label="Present" tone="active" />;
@@ -74,12 +92,21 @@ function statusPill(status: string | null, hasSignIn: boolean) {
     case "missing_sign_off":
       return <StatusPill label="Missing sign-off" tone="away" />;
     default:
-      return hasSignIn ? (
-        <StatusPill label="Present" tone="active" />
-      ) : (
-        <StatusPill label="Not signed in" tone="offline" />
-      );
+      return <StatusPill label="Not signed in" tone="offline" />;
   }
+}
+
+function attendanceHref(input: {
+  date: string;
+  status?: string;
+  department?: string;
+  q?: string;
+}) {
+  const params = new URLSearchParams({ date: input.date });
+  if (input.status) params.set("status", input.status);
+  if (input.department) params.set("department", input.department);
+  if (input.q) params.set("q", input.q);
+  return `/attendance?${params.toString()}`;
 }
 
 export default async function AttendancePage({
@@ -91,7 +118,44 @@ export default async function AttendancePage({
   const params = await searchParams;
   const requested = validDate(single(params.date));
   const date = requested ?? currentDateFor(current.timezone);
-  const rows = await getAttendanceTeam(current, date);
+  const status = single(params.status) ?? "";
+  const department = single(params.department) ?? "";
+  const query = (single(params.q) ?? "").trim().toLowerCase();
+
+  const allRows = await getAttendanceTeam(current, date);
+  const departments = Array.from(
+    new Set(allRows.map((row) => row.department)),
+  ).sort();
+
+  const counts = new Map<string, number>();
+  for (const [value] of attendanceFilters) {
+    counts.set(
+      value,
+      value
+        ? allRows.filter((row) => attendanceKey(row) === value).length
+        : allRows.length,
+    );
+  }
+
+  const rows = allRows.filter((row) => {
+    const matchesQuery =
+      !query ||
+      row.fullName.toLowerCase().includes(query) ||
+      row.employeeCode.toLowerCase().includes(query) ||
+      row.department.toLowerCase().includes(query) ||
+      row.jobTitle.toLowerCase().includes(query);
+
+    return (
+      matchesQuery &&
+      (!status || attendanceKey(row) === status) &&
+      (!department || row.department === department)
+    );
+  });
+
+  const exportParams = new URLSearchParams({ date });
+  if (status) exportParams.set("status", status);
+  if (department) exportParams.set("department", department);
+  if (query) exportParams.set("q", query);
 
   return (
     <>
@@ -99,27 +163,86 @@ export default async function AttendancePage({
 
       <PageHead
         title="Attendance"
-        subtitle={`${date} · real workday calculations`}
+        subtitle={`${date} · official workday calculations`}
         actions={
           <Link
             className="btn"
-            href={`/attendance/export?date=${encodeURIComponent(date)}`}
+            href={`/attendance/export?${exportParams.toString()}`}
           >
             Export CSV
           </Link>
         }
       />
 
-      <form className="filters" action="/attendance">
+      <div className="status-filter-bar" aria-label="Attendance filters">
+        {attendanceFilters.map(([value, label]) => (
+          <Link
+            key={value || "all"}
+            href={attendanceHref({
+              date,
+              status: value,
+              department,
+              q: query,
+            })}
+            className={
+              status === value
+                ? "status-filter-chip on"
+                : "status-filter-chip"
+            }
+          >
+            <span>{label}</span>
+            <b>{counts.get(value) ?? 0}</b>
+          </Link>
+        ))}
+      </div>
+
+      <form className="filters attendance-filters" action="/attendance">
         <input
           type="date"
           name="date"
           defaultValue={date}
           aria-label="Attendance date"
         />
+
+        <input
+          className="filter-search"
+          type="text"
+          name="q"
+          defaultValue={single(params.q) ?? ""}
+          placeholder="Search employee"
+          aria-label="Search employees"
+        />
+
+        <select name="status" defaultValue={status} aria-label="Attendance status">
+          {attendanceFilters.map(([value, label]) => (
+            <option value={value} key={value || "all"}>
+              {value ? label : "All statuses"}
+            </option>
+          ))}
+        </select>
+
+        <select
+          name="department"
+          defaultValue={department}
+          aria-label="Department"
+        >
+          <option value="">All departments</option>
+          {departments.map((name) => (
+            <option value={name} key={name}>
+              {name}
+            </option>
+          ))}
+        </select>
+
         <button className="btn" type="submit">
-          View date
+          Apply
         </button>
+
+        {status || department || query ? (
+          <Link className="btn ghost" href={`/attendance?date=${date}`}>
+            Reset
+          </Link>
+        ) : null}
       </form>
 
       <div className="card tbl">
@@ -149,17 +272,16 @@ export default async function AttendancePage({
                       <Avatar initials={initials(row.fullName)} size={30} />
                       <span>
                         {row.fullName}
-                        <small>{row.department}</small>
+                        <small>
+                          {row.employeeCode} · {row.department}
+                        </small>
                       </span>
                     </span>
                   </Link>
                 </td>
                 <td>
                   <span className="attendance-status-cell">
-                    {statusPill(
-                      row.attendanceStatus,
-                      Boolean(row.firstSignInAt),
-                    )}
+                    {statusPill(attendanceKey(row))}
                     {row.corrected ? (
                       <span className="attendance-corrected">Corrected</span>
                     ) : null}
@@ -224,7 +346,7 @@ export default async function AttendancePage({
                   colSpan={current.role === "super_admin" ? 9 : 8}
                   className="mut attendance-empty"
                 >
-                  No employees are in your reporting scope.
+                  No employees match the selected filters.
                 </td>
               </tr>
             ) : null}
@@ -234,9 +356,9 @@ export default async function AttendancePage({
 
       <p className="preview-note">
         Flexible schedules are measured against their daily target and are
-        never marked late. Late applies to fixed shifts and flexible schedules
-        with core hours after the configured grace period. Corrections require
-        a reason and are written to the audit log.
+        never marked late. Fixed shifts and flexible-core schedules use their
+        configured start/core-start plus grace. Corrections require a reason
+        and are audited.
       </p>
     </>
   );

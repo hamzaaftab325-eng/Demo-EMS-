@@ -7,8 +7,27 @@ import {
 import { AttendanceTimeline } from "@/components/attendance/timeline-strip";
 import { RealtimeRefresh } from "@/components/realtime/realtime-refresh";
 import { requireRole } from "@/lib/auth/current-profile";
-import { getLiveTeam, formatDuration } from "@/lib/data/attendance";
+import {
+  getLiveTeam,
+  formatDuration,
+  type LiveDisplayStatus,
+} from "@/lib/data/attendance";
 import { TEAM_ROLES } from "@/lib/navigation";
+
+const statusOptions: Array<{
+  value: "" | LiveDisplayStatus;
+  label: string;
+}> = [
+  { value: "", label: "All" },
+  { value: "active", label: "Active" },
+  { value: "idle", label: "Idle" },
+  { value: "away", label: "Away" },
+  { value: "on_break", label: "On break" },
+  { value: "in_meeting", label: "In meeting" },
+  { value: "offline", label: "Not signed in" },
+  { value: "workday_ended", label: "Signed off" },
+  { value: "on_leave", label: "On leave" },
+];
 
 function initials(name: string) {
   return name
@@ -32,20 +51,24 @@ function formatTime(iso: string | null, timeZone: string) {
   }).format(new Date(iso));
 }
 
-function relativeTime(iso: string | null) {
+function relativeTime(iso: string | null, snapshotAt: string) {
   if (!iso) return "—";
   const minutes = Math.max(
     0,
-    Math.floor((Date.now() - new Date(iso).getTime()) / 60_000),
+    Math.floor(
+      (new Date(snapshotAt).getTime() - new Date(iso).getTime()) / 60_000,
+    ),
   );
+
   if (minutes < 1) return "Just now";
   if (minutes === 1) return "1 min ago";
   if (minutes < 60) return `${minutes} min ago`;
+
   const hours = Math.floor(minutes / 60);
   return `${hours}h ago`;
 }
 
-function presencePill(status: string) {
+function presencePill(status: LiveDisplayStatus) {
   switch (status) {
     case "active":
       return <StatusPill label="Active" tone="active" />;
@@ -66,6 +89,19 @@ function presencePill(status: string) {
   }
 }
 
+function liveHref(input: {
+  status?: string;
+  department?: string;
+  q?: string;
+}) {
+  const params = new URLSearchParams();
+  if (input.status) params.set("status", input.status);
+  if (input.department) params.set("department", input.department);
+  if (input.q) params.set("q", input.q);
+  const query = params.toString();
+  return query ? `/live-view?${query}` : "/live-view";
+}
+
 export default async function LiveViewPage({
   searchParams,
 }: {
@@ -75,17 +111,37 @@ export default async function LiveViewPage({
   const params = await searchParams;
   const status = single(params.status) ?? "";
   const department = single(params.department) ?? "";
+  const query = (single(params.q) ?? "").trim().toLowerCase();
 
   const team = await getLiveTeam(current);
   const departments = Array.from(
     new Set(team.map((row) => row.department)),
   ).sort();
 
-  const rows = team.filter(
-    (row) =>
+  const counts = new Map<string, number>();
+  for (const option of statusOptions) {
+    counts.set(
+      option.value,
+      option.value
+        ? team.filter((row) => row.presenceStatus === option.value).length
+        : team.length,
+    );
+  }
+
+  const rows = team.filter((row) => {
+    const matchesQuery =
+      !query ||
+      row.fullName.toLowerCase().includes(query) ||
+      row.employeeCode.toLowerCase().includes(query) ||
+      row.jobTitle.toLowerCase().includes(query) ||
+      row.department.toLowerCase().includes(query);
+
+    return (
+      matchesQuery &&
       (!status || row.presenceStatus === status) &&
-      (!department || row.department === department),
-  );
+      (!department || row.department === department)
+    );
+  });
 
   return (
     <>
@@ -93,21 +149,47 @@ export default async function LiveViewPage({
 
       <PageHead
         title="Live view"
-        subtitle="Updates automatically. Presence describes activity inside the EMS tab only."
+        subtitle="Realtime team presence from the EMS tab only"
         actions={<StatusPill label="Live" tone="active" />}
       />
 
-      <form className="filters" action="/live-view">
+      <div className="status-filter-bar" aria-label="Presence filters">
+        {statusOptions.map((option) => (
+          <Link
+            key={option.value || "all"}
+            href={liveHref({
+              status: option.value,
+              department,
+              q: query,
+            })}
+            className={
+              status === option.value
+                ? "status-filter-chip on"
+                : "status-filter-chip"
+            }
+          >
+            <span>{option.label}</span>
+            <b>{counts.get(option.value) ?? 0}</b>
+          </Link>
+        ))}
+      </div>
+
+      <form className="filters live-filters" action="/live-view">
+        <input
+          className="filter-search"
+          type="text"
+          name="q"
+          defaultValue={single(params.q) ?? ""}
+          placeholder="Search name, ID, role or department"
+          aria-label="Search team"
+        />
+
         <select name="status" defaultValue={status} aria-label="Status">
-          <option value="">All statuses</option>
-          <option value="active">Active</option>
-          <option value="idle">Idle</option>
-          <option value="away">Away</option>
-          <option value="on_break">On break</option>
-          <option value="in_meeting">In meeting</option>
-          <option value="offline">Not signed in</option>
-          <option value="workday_ended">Signed off</option>
-          <option value="on_leave">On leave</option>
+          {statusOptions.map((option) => (
+            <option value={option.value} key={option.value || "all"}>
+              {option.value ? option.label : "All statuses"}
+            </option>
+          ))}
         </select>
 
         <select
@@ -124,8 +206,14 @@ export default async function LiveViewPage({
         </select>
 
         <button className="btn" type="submit">
-          Filter
+          Apply
         </button>
+
+        {status || department || query ? (
+          <Link className="btn ghost" href="/live-view">
+            Reset
+          </Link>
+        ) : null}
       </form>
 
       <div className="card tbl">
@@ -136,7 +224,7 @@ export default async function LiveViewPage({
               <th>Status</th>
               <th className="hide-sm">Department</th>
               <th>Signed in</th>
-              <th className="hide-sm">Last activity</th>
+              <th className="hide-sm">Last EMS activity</th>
               <th style={{ minWidth: 180 }}>Today</th>
               <th className="num">Worked / target</th>
               <th className="num hide-sm">Breaks</th>
@@ -154,7 +242,9 @@ export default async function LiveViewPage({
                       <Avatar initials={initials(row.fullName)} size={30} />
                       <span>
                         {row.fullName}
-                        <small>{row.jobTitle}</small>
+                        <small>
+                          {row.employeeCode} · {row.jobTitle}
+                        </small>
                       </span>
                     </span>
                   </Link>
@@ -171,7 +261,7 @@ export default async function LiveViewPage({
                   ) : null}
                 </td>
                 <td className="hide-sm mut">
-                  {relativeTime(row.lastActivityAt)}
+                  {relativeTime(row.lastActivityAt, row.snapshotAt)}
                 </td>
                 <td>
                   <AttendanceTimeline row={row} />
@@ -194,7 +284,7 @@ export default async function LiveViewPage({
             {rows.length === 0 ? (
               <tr>
                 <td colSpan={8} className="mut attendance-empty">
-                  No one matches these filters.
+                  No team members match the selected filters.
                 </td>
               </tr>
             ) : null}
@@ -218,8 +308,9 @@ export default async function LiveViewPage({
       </div>
 
       <p className="preview-note">
-        Active, idle and away are based only on activity inside the EMS tab.
-        Meetings count toward worked time; breaks do not.
+        Active, idle and away are calculated from EMS-tab heartbeat and
+        interaction timestamps. Meetings count toward worked time; breaks do
+        not.
       </p>
     </>
   );

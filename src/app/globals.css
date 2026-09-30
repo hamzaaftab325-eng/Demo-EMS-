@@ -291,3 +291,23 @@ label.f input,label.f select{width:100%}
 @media(max-width:760px){
   .attendance-correction-grid{grid-template-columns:1fr}
 }
+
+/* Phase 1–5 final polish */
+.status-filter-bar{display:flex;gap:7px;flex-wrap:wrap;margin:0 0 12px}
+.status-filter-chip{display:inline-flex;align-items:center;gap:7px;height:32px;padding:0 10px;border:1px solid var(--border);border-radius:999px;background:var(--surface);color:var(--mfg);font-size:12px;text-decoration:none;transition:border-color .15s ease,background .15s ease,color .15s ease}
+.status-filter-chip b{min-width:18px;height:18px;padding:0 5px;border-radius:999px;background:var(--muted);display:inline-flex;align-items:center;justify-content:center;color:var(--fg);font-size:10px}
+.status-filter-chip:hover{border-color:var(--cyan);color:var(--fg)}
+.status-filter-chip.on{border-color:var(--cyan);background:color-mix(in srgb,var(--cyan) 10%,var(--surface));color:var(--fg)}
+.status-filter-chip.on b{background:color-mix(in srgb,var(--cyan) 18%,var(--muted))}
+.filter-search{min-width:250px;flex:1 1 250px}
+.live-filters select,.attendance-filters select{min-width:150px}
+.presence-stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(126px,1fr));gap:12px}
+.myday-hours{gap:8px}
+.myday-hours span{white-space:nowrap}
+@media(max-width:620px){
+  .status-filter-bar{flex-wrap:nowrap;overflow-x:auto;padding-bottom:4px;scrollbar-width:thin}
+  .status-filter-chip{flex:none}
+  .filter-search{min-width:100%;flex-basis:100%}
+  .presence-stats-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .myday-hours{font-size:10px}
+}

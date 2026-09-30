@@ -4,6 +4,7 @@ import {
   currentDateFor,
   formatDuration,
   getAttendanceTeam,
+  type TeamAttendanceRow,
 } from "@/lib/data/attendance";
 
 function csvCell(value: string | number | null) {
@@ -18,6 +19,11 @@ function formatTime(iso: string | null, timeZone: string) {
     hour: "numeric",
     minute: "2-digit",
   }).format(new Date(iso));
+}
+
+function attendanceKey(row: TeamAttendanceRow) {
+  if (row.attendanceStatus) return row.attendanceStatus;
+  return row.firstSignInAt ? "present" : "not_signed_in";
 }
 
 export async function GET(request: NextRequest) {
@@ -38,7 +44,27 @@ export async function GET(request: NextRequest) {
       ? requested
       : currentDateFor(profile.timezone);
 
-  const rows = await getAttendanceTeam(profile, date);
+  const status = request.nextUrl.searchParams.get("status") ?? "";
+  const department = request.nextUrl.searchParams.get("department") ?? "";
+  const query = (request.nextUrl.searchParams.get("q") ?? "")
+    .trim()
+    .toLowerCase();
+
+  const rows = (await getAttendanceTeam(profile, date)).filter((row) => {
+    const matchesQuery =
+      !query ||
+      row.fullName.toLowerCase().includes(query) ||
+      row.employeeCode.toLowerCase().includes(query) ||
+      row.department.toLowerCase().includes(query) ||
+      row.jobTitle.toLowerCase().includes(query);
+
+    return (
+      matchesQuery &&
+      (!status || attendanceKey(row) === status) &&
+      (!department || row.department === department)
+    );
+  });
+
   const header = [
     "Employee",
     "Employee ID",
@@ -64,7 +90,7 @@ export async function GET(request: NextRequest) {
         row.fullName,
         row.employeeCode,
         row.department,
-        row.attendanceStatus ?? (row.firstSignInAt ? "present" : "not_signed_in"),
+        attendanceKey(row),
         row.scheduleName ?? "",
         formatTime(row.firstSignInAt, row.timezone),
         formatTime(row.finalSignOffAt, row.timezone),

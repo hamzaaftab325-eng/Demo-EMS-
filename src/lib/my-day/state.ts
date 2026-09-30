@@ -17,6 +17,8 @@ export type MyDayObstacleStatus =
   Database["public"]["Enums"]["obstacle_status"];
 export type MyDayAttendanceEvent =
   Database["public"]["Enums"]["attendance_event_type"];
+export type MyDayPresenceStatus =
+  Database["public"]["Enums"]["presence_status"];
 
 export type MyDayCycleItem = {
   entryItemId: string;
@@ -80,6 +82,7 @@ export type MyDayEvent = {
 export type MyDayState = {
   workDate: string;
   timezone: string;
+  snapshotAt: string;
   profile: {
     id: string;
     fullName: string;
@@ -131,6 +134,12 @@ export type MyDayState = {
   obstacles: MyDayObstacle[];
   intervals: MyDayInterval[];
   attendanceEvents: MyDayEvent[];
+  presence: {
+    status: MyDayPresenceStatus;
+    lastHeartbeatAt: string | null;
+    lastActivityAt: string | null;
+    tabConnected: boolean;
+  } | null;
 };
 
 type Obj = Record<string, unknown>;
@@ -172,6 +181,7 @@ function parseState(value: Json): MyDayState {
   return {
     workDate: str(root.work_date),
     timezone: str(root.timezone, "Asia/Karachi"),
+    snapshotAt: new Date().toISOString(),
     profile: {
       id: str(profile.id),
       fullName: str(profile.full_name),
@@ -299,6 +309,7 @@ function parseState(value: Json): MyDayState {
         source: str(row.source, "ems"),
       };
     }),
+    presence: null,
   };
 }
 
@@ -312,31 +323,54 @@ export async function getMyDayState() {
 
   const state = parseState(data);
 
-  if (state.workday?.id) {
-    const { data: attendance, error: attendanceError } = await supabase
-      .from("workdays")
-      .select(
-        "first_sign_in_at, final_sign_off_at, scheduled_minutes, gross_minutes, break_minutes, meeting_minutes, net_work_minutes, late_minutes, overtime_minutes",
-      )
-      .eq("id", state.workday.id)
-      .maybeSingle();
+  const [{ data: attendance, error: attendanceError }, { data: presence, error: presenceError }] =
+    await Promise.all([
+      state.workday?.id
+        ? supabase
+            .from("workdays")
+            .select(
+              "first_sign_in_at, final_sign_off_at, scheduled_minutes, gross_minutes, break_minutes, meeting_minutes, net_work_minutes, late_minutes, overtime_minutes",
+            )
+            .eq("id", state.workday.id)
+            .maybeSingle()
+        : Promise.resolve({ data: null, error: null }),
+      supabase
+        .from("employee_presence")
+        .select(
+          "status, last_heartbeat_at, last_activity_at, tab_connected",
+        )
+        .eq("employee_id", state.profile.id)
+        .maybeSingle(),
+    ]);
 
-    if (attendanceError) {
-      throw new Error("Could not load today's attendance totals.");
-    }
-
-    if (attendance) {
-      state.workday.firstSignInAt = attendance.first_sign_in_at;
-      state.workday.finalSignOffAt = attendance.final_sign_off_at;
-      state.workday.scheduledMinutes = attendance.scheduled_minutes;
-      state.workday.grossMinutes = attendance.gross_minutes;
-      state.workday.breakMinutes = attendance.break_minutes;
-      state.workday.meetingMinutes = attendance.meeting_minutes;
-      state.workday.netWorkMinutes = attendance.net_work_minutes;
-      state.workday.lateMinutes = attendance.late_minutes;
-      state.workday.overtimeMinutes = attendance.overtime_minutes;
-    }
+  if (attendanceError) {
+    throw new Error("Could not load today's attendance totals.");
   }
+
+  if (presenceError) {
+    throw new Error("Could not load your current presence.");
+  }
+
+  if (state.workday && attendance) {
+    state.workday.firstSignInAt = attendance.first_sign_in_at;
+    state.workday.finalSignOffAt = attendance.final_sign_off_at;
+    state.workday.scheduledMinutes = attendance.scheduled_minutes;
+    state.workday.grossMinutes = attendance.gross_minutes;
+    state.workday.breakMinutes = attendance.break_minutes;
+    state.workday.meetingMinutes = attendance.meeting_minutes;
+    state.workday.netWorkMinutes = attendance.net_work_minutes;
+    state.workday.lateMinutes = attendance.late_minutes;
+    state.workday.overtimeMinutes = attendance.overtime_minutes;
+  }
+
+  state.presence = presence
+    ? {
+        status: presence.status,
+        lastHeartbeatAt: presence.last_heartbeat_at,
+        lastActivityAt: presence.last_activity_at,
+        tabConnected: presence.tab_connected,
+      }
+    : null;
 
   return state;
 }

@@ -124,3 +124,23 @@ This avoids building a second copy of scrum data: Phase 7 will read the same Pha
 **Phase 6 — Requests & Approvals**
 
 Leave, shift-change and hour-change requests, manager/final approval, leave ledger impact, schedule changes, notifications, and audited decisions.
+
+
+## Phase 1–5 final audit
+
+The stabilization audit completed after Phase 5 verifies:
+
+- Authentication/session guards and role-aware navigation
+- Employee hierarchy, schedule history and reporting-cycle protection
+- My Day transactional scrum workflow, carry-over, progress, breaks, meetings and sign-off
+- Presence heartbeat with Active / Idle / Away / Break / Meeting / Signed-off states
+- Attendance calculation integrity, manager subtree visibility and employee isolation
+- Live View and Attendance status/search/department filters
+- Attendance CSV exports that respect the selected filters
+- Super Admin attendance corrections with mandatory reason and audit history
+- Realtime publication for employee_presence and workdays
+- Active Phase 5 cron maintenance jobs
+- RLS enabled on every public table and no anonymous write grants
+- No duplicate employee codes/emails, active reporting lines, active schedules, workdays or scrum entries
+
+The My Day timeline is adaptive to the actual work session. A late-night sign-in at 10:50 PM now renders an hourly window such as 10 PM → 11 PM → 12 AM instead of stretching the bar across an arbitrary 8-hour range.

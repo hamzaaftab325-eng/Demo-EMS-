@@ -75,21 +75,6 @@ export function NavigationLinks({
                   <Icon strokeWidth={2} />
                   {item.label}
 
-                  {item.href === "/requests" ? (
-                    <span
-                      style={{
-                        marginLeft: "auto",
-                        background: "var(--gold)",
-                        color: "#181818",
-                        borderRadius: 999,
-                        padding: "0 7px",
-                        fontSize: 11,
-                        fontWeight: 700,
-                      }}
-                    >
-                      2
-                    </span>
-                  ) : null}
                 </Link>
               );
             })}

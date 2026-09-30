@@ -81,7 +81,7 @@ export function AppShell({
           <div className="demo">
             <b>Development account.</b>
             <span>
-              Authentication and Phases 3–5 use live Supabase data. Later modules remain clearly staged.
+              Phases 1–5 are live on Supabase. Later modules remain clearly staged.
             </span>
           </div>
         ) : null}

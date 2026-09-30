@@ -59,40 +59,20 @@ function formatDate(date: string, timeZone: string) {
   }).format(instant);
 }
 
-function localMinute(iso: string, timeZone: string) {
-  const parts = new Intl.DateTimeFormat("en-US", {
-    timeZone,
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
-  }).formatToParts(new Date(iso));
-
-  const hour = Number(parts.find((part) => part.type === "hour")?.value ?? 0);
-  const minute = Number(
-    parts.find((part) => part.type === "minute")?.value ?? 0,
-  );
-
-  return hour * 60 + minute;
-}
-
-function currentMinute(timeZone: string) {
-  return localMinute(new Date().toISOString(), timeZone);
-}
-
 function buildTimeline(state: MyDayState): TimelineSegment[] {
-  const now = currentMinute(state.timezone);
+  const now = new Date(state.snapshotAt).getTime();
   const sessions: Array<{ start: number; end: number }> = [];
   let sessionStart: number | null = null;
 
   for (const event of state.attendanceEvents) {
-    const minute = localMinute(event.occurredAt, state.timezone);
+    const timestamp = new Date(event.occurredAt).getTime();
 
     if (
       (event.eventType === "sign_in" ||
         event.eventType === "sign_back_in") &&
       sessionStart == null
     ) {
-      sessionStart = minute;
+      sessionStart = timestamp;
     }
 
     if (
@@ -100,21 +80,27 @@ function buildTimeline(state: MyDayState): TimelineSegment[] {
         event.eventType === "auto_sign_off") &&
       sessionStart != null
     ) {
-      sessions.push({ start: sessionStart, end: Math.max(sessionStart, minute) });
+      sessions.push({
+        start: sessionStart,
+        end: Math.max(sessionStart, timestamp),
+      });
       sessionStart = null;
     }
   }
 
   if (sessionStart != null) {
-    sessions.push({ start: sessionStart, end: Math.max(sessionStart, now) });
+    sessions.push({
+      start: sessionStart,
+      end: Math.max(sessionStart, now),
+    });
   }
 
   const intervals = state.intervals
     .map((interval) => ({
       kind: interval.intervalType,
-      start: localMinute(interval.startedAt, state.timezone),
+      start: new Date(interval.startedAt).getTime(),
       end: interval.endedAt
-        ? localMinute(interval.endedAt, state.timezone)
+        ? new Date(interval.endedAt).getTime()
         : now,
     }))
     .sort((a, b) => a.start - b.start);
@@ -181,27 +167,39 @@ function itemLabel(item: {
     : item.title;
 }
 
-function statusTone(
-  status: MyDayState["workday"] extends infer W
-    ? W extends { status: infer S }
-      ? S
-      : never
-    : never,
-) {
-  if (status === "on_break") return "break" as const;
-  if (status === "in_meeting") return "meeting" as const;
-  if (status === "signed_off") return "ended" as const;
-  return "active" as const;
-}
+function currentStatus(state: MyDayState) {
+  if (!state.workday || state.workday.status === "not_started") {
+    return { label: "Not signed in", tone: "offline" as const };
+  }
 
-function workdayLabel(state: MyDayState) {
-  const status = state.workday?.status;
+  if (state.workday.status === "signed_off") {
+    return { label: "Signed off", tone: "ended" as const };
+  }
 
-  if (!status || status === "not_started") return "Not signed in";
-  if (status === "working") return "Active";
-  if (status === "on_break") return "On break";
-  if (status === "in_meeting") return "In meeting";
-  return "Signed off";
+  if (state.workday.status === "on_break") {
+    return { label: "On break", tone: "break" as const };
+  }
+
+  if (state.workday.status === "in_meeting") {
+    return { label: "In meeting", tone: "meeting" as const };
+  }
+
+  switch (state.presence?.status) {
+    case "idle":
+      return { label: "Idle", tone: "idle" as const };
+    case "away":
+      return { label: "Away", tone: "away" as const };
+    case "offline":
+      return { label: "Offline", tone: "offline" as const };
+    case "workday_ended":
+      return { label: "Signed off", tone: "ended" as const };
+    case "on_break":
+      return { label: "On break", tone: "break" as const };
+    case "in_meeting":
+      return { label: "In meeting", tone: "meeting" as const };
+    default:
+      return { label: "Active", tone: "active" as const };
+  }
 }
 
 function firstSignIn(state: MyDayState) {
@@ -362,31 +360,39 @@ function ProgressItem({
 
 function Timeline({ state }: { state: MyDayState }) {
   const segments = useMemo(() => buildTimeline(state), [state]);
-  const now = currentMinute(state.timezone);
+  const now = new Date(state.snapshotAt).getTime();
+  const hour = 60 * 60 * 1000;
 
-  const times = segments.flatMap((segment) => [segment.start, segment.end]);
-  let start = Math.min(8 * 60, ...(times.length ? times : [8 * 60]));
-  let end = Math.max(20 * 60, ...(times.length ? times : [20 * 60]), now);
+  const values = segments.flatMap((segment) => [segment.start, segment.end]);
+  const earliest = values.length ? Math.min(...values) : now;
+  const latest = values.length ? Math.max(...values, now) : now;
 
-  start = Math.max(0, Math.floor((start - 30) / 60) * 60);
-  end = Math.min(24 * 60, Math.ceil((end + 30) / 60) * 60);
+  let start = Math.floor(earliest / hour) * hour;
+  let end = Math.ceil(latest / hour) * hour;
 
-  if (end - start < 8 * 60) end = Math.min(24 * 60, start + 8 * 60);
+  if (end <= start) end = start + hour;
+  if (end - start < 2 * hour) end = start + 2 * hour;
 
-  const span = Math.max(60, end - start);
-  const ticks = Array.from({ length: 7 }, (_, index) =>
-    Math.round(start + (span * index) / 6),
-  );
+  const spanHours = (end - start) / hour;
+  const stepHours = spanHours <= 10 ? 1 : spanHours <= 18 ? 2 : 3;
+  const ticks: number[] = [];
 
-  function clock(minute: number) {
-    const normalized = ((minute % 1440) + 1440) % 1440;
-    const hour24 = Math.floor(normalized / 60);
-    const minuteValue = normalized % 60;
-    const suffix = hour24 >= 12 ? "p" : "a";
-    const hour = ((hour24 + 11) % 12) + 1;
-    return minuteValue
-      ? `${hour}:${String(minuteValue).padStart(2, "0")}${suffix}`
-      : `${hour}${suffix}`;
+  for (let tick = start; tick <= end; tick += stepHours * hour) {
+    ticks.push(tick);
+  }
+
+  if (ticks[ticks.length - 1] !== end) {
+    ticks.push(end);
+  }
+
+  const span = Math.max(hour, end - start);
+
+  function clock(timestamp: number, includeMinutes = false) {
+    return new Intl.DateTimeFormat("en-US", {
+      timeZone: state.timezone,
+      hour: "numeric",
+      minute: includeMinutes ? "2-digit" : undefined,
+    }).format(new Date(timestamp));
   }
 
   return (
@@ -408,7 +414,10 @@ function Timeline({ state }: { state: MyDayState }) {
                     ? "var(--meeting)"
                     : "var(--active)",
             }}
-            title={`${segment.kind} · ${clock(segment.start)}–${clock(segment.end)}`}
+            title={`${segment.kind} · ${clock(segment.start, true)}–${clock(
+              segment.end,
+              true,
+            )}`}
           />
         ))}
 
@@ -425,7 +434,7 @@ function Timeline({ state }: { state: MyDayState }) {
         ) : null}
       </div>
 
-      <div className="hours">
+      <div className="hours myday-hours">
         {ticks.map((tick) => (
           <span key={tick}>{clock(tick)}</span>
         ))}
@@ -973,14 +982,10 @@ export function MyDayClient({ state }: { state: MyDayState }) {
         <div>
           <div className="summary-grid">
             <Summary label="Status">
-              {state.workday && state.workday.status !== "not_started" ? (
-                <StatusPill
-                  label={workdayLabel(state)}
-                  tone={statusTone(state.workday.status)}
-                />
-              ) : (
-                <StatusPill label="Not signed in" tone="offline" />
-              )}
+              <StatusPill
+                label={currentStatus(state).label}
+                tone={currentStatus(state).tone}
+              />
             </Summary>
 
             <Summary label="Signed in">
@@ -1011,7 +1016,7 @@ export function MyDayClient({ state }: { state: MyDayState }) {
 
           <div className="card myday-side-card">
             <div className="hd">
-              <h2>Phase 4 data</h2>
+              <h2>Workday settings</h2>
             </div>
             <div className="bd">
               <dl className="kv employee-kv">
@@ -1030,8 +1035,8 @@ export function MyDayClient({ state }: { state: MyDayState }) {
       </div>
 
       <p className="preview-note">
-        My Day is now backed by Supabase. Attendance calculations, idle/away
-        detection, heartbeat, and official hours are completed in Phase 5.
+        Attendance, presence and worked-time totals are live. Active, idle and
+        away reflect activity inside this EMS tab only.
       </p>
 
       {showSignOff ? (

@@ -40,7 +40,9 @@ export default async function DashboardPage() {
     ["Idle", count("idle"), "--idle", "idle"],
     ["Away", count("away"), "--away", "away"],
     ["On break", count("on_break"), "--break", "on_break"],
+    ["In meeting", count("in_meeting"), "--meeting", "in_meeting"],
     ["Not signed in", count("offline"), "--offline", "offline"],
+    ["Signed off", count("workday_ended"), "--ended", "workday_ended"],
     ["On leave", count("on_leave"), "--break", "on_leave"],
   ] as const;
 
@@ -80,7 +82,7 @@ export default async function DashboardPage() {
         subtitle={`${timeNow(current.timezone)} · ${current.timezone}`}
       />
 
-      <div className="grid g7" style={{ marginBottom: 16 }}>
+      <div className="presence-stats-grid" style={{ marginBottom: 16 }}>
         {cards.map(([label, value, color, status]) => (
           <Link
             className="stat"
