@@ -7,13 +7,11 @@ import { NavigationLinks } from "@/components/layout/navigation-links";
 
 export function AppShell({ children }: { children: ReactNode }) {
   const [menuOpen, setMenuOpen] = useState(false);
-  const [theme, setTheme] = useState<"light" | "dark" | "">("");
 
   useEffect(() => {
     const saved = window.localStorage.getItem("ems-theme");
     if (saved === "light" || saved === "dark") {
       document.documentElement.dataset.theme = saved;
-      setTheme(saved);
     }
   }, []);
 
@@ -24,7 +22,6 @@ export function AppShell({ children }: { children: ReactNode }) {
     const next = current === "dark" ? "light" : "dark";
     document.documentElement.dataset.theme = next;
     window.localStorage.setItem("ems-theme", next);
-    setTheme(next);
   }
 
   return (
@@ -82,7 +79,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
           <button
             className="btn ghost"
-            aria-label={`Toggle dark mode${theme ? ` (currently ${theme})` : ""}`}
+            aria-label="Toggle dark mode"
             onClick={toggleTheme}
           >
             <Moon size={17} />

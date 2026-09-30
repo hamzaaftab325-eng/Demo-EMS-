@@ -24,7 +24,7 @@ export default function MyDayPage() {
   const [started, setStarted] = useState(false);
   const [state, setState] = useState<DayState>("offline");
   const [signedOff, setSignedOff] = useState(false);
-  const [cycle, setCycle] = useState(initialCycle);
+  const [cycle] = useState(initialCycle);
 
   const worked = useMemo(() => (started ? "5h 01m / 8h" : "0h 00m / 8h"), [started]);
 
@@ -90,7 +90,7 @@ export default function MyDayPage() {
 
                   <div className="card" style={{ borderRadius: 8 }}>
                     <ul className="list" style={{ padding: "0 12px" }}>
-                      {cycle.map((item, index) => (
+                      {cycle.map((item) => (
                         <li key={`${item.project}-${item.title}`}>
                           <label className="scrum-item" style={{ cursor: "pointer" }}>
                             <input
