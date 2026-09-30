@@ -1,16 +1,2 @@
-import { ModulePlaceholder } from "@/components/shared/module-placeholder";
-
-export default function EmployeesPage() {
-  return (
-    <ModulePlaceholder
-      title="Employees"
-      phase={3}
-      description="Employee profiles, departments, reporting hierarchy and schedules become operational in Phase 3."
-      items={[
-        "Employee profiles",
-        "Reporting hierarchy",
-        "Role and schedule assignment",
-      ]}
-    />
-  );
-}
+import { PageHead, Avatar } from "@/components/shared/prototype";
+export default function EmployeesPage(){const rows=[["Hamza Aftab","HA","UX Designer & Front-End Developer","Web","Danish Mehmood"],["Iqra Noor","IN","Marketing Coordinator and Content Editor","Content","Areeba Ibrar"],["Sadaf Riaz","SR","Sr. HR Coordinator","HR","Areeba Ibrar"]];return <><PageHead title="Employees" subtitle="People, reporting lines and schedules" actions={<button className="btn pri">Import team</button>}/><div className="filters"><input type="text" placeholder="Search employees"/><select><option>All departments</option><option>Web</option><option>Content</option><option>HR</option></select></div><div className="card tbl"><table><thead><tr><th>Employee</th><th>Role</th><th>Department</th><th>Reports to</th><th>Schedule</th></tr></thead><tbody>{rows.map(r=><tr className="click" key={r[0]}><td><span className="who"><Avatar initials={r[1]} size={30}/><span>{r[0]}<small>{r[2]}</small></span></span></td><td>Employee</td><td>{r[3]}</td><td>{r[4]}</td><td className="mut">Flexible · 8h</td></tr>)}</tbody></table></div></>}

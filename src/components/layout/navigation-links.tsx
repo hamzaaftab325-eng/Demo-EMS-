@@ -3,31 +3,33 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  Activity,
-  CalendarClock,
+  CalendarDays,
+  ChartNoAxesCombined,
+  CircleRadio,
   ClipboardList,
-  FileBarChart,
-  Gauge,
-  ListChecks,
+  Grid2X2,
+  Inbox,
+  ScrollText,
   Settings,
   ShieldCheck,
-  UsersRound,
+  Sun,
+  Users,
   type LucideIcon,
 } from "lucide-react";
-import { navigation, type NavItem } from "@/lib/navigation";
-import { cn } from "@/lib/utils";
+import { navigationGroups, type NavIcon } from "@/lib/navigation";
 
-const icons: Record<NavItem["icon"], LucideIcon> = {
-  dashboard: Gauge,
-  day: ListChecks,
-  requests: ClipboardList,
-  live: Activity,
-  scrum: CalendarClock,
-  attendance: CalendarClock,
-  employees: UsersRound,
-  reports: FileBarChart,
-  audit: ShieldCheck,
-  settings: Settings,
+const icons: Record<NavIcon, LucideIcon> = {
+  sun: Sun,
+  inbox: Inbox,
+  grid: Grid2X2,
+  radio: CircleRadio,
+  clip: ClipboardList,
+  cal: CalendarDays,
+  users: Users,
+  chart: ChartNoAxesCombined,
+  scroll: ScrollText,
+  gear: Settings,
+  shield: ShieldCheck,
 };
 
 export function NavigationLinks({
@@ -38,32 +40,44 @@ export function NavigationLinks({
   const pathname = usePathname();
 
   return (
-    <nav className="space-y-1" aria-label="EMS navigation">
-      {navigation.map((item) => {
-        const Icon = icons[item.icon];
-        const active =
-          pathname === item.href || pathname.startsWith(`${item.href}/`);
+    <nav className="nav" aria-label="EMS navigation">
+      {navigationGroups.map((group, groupIndex) => (
+        <div className="navgroup" key={group.label ?? `group-${groupIndex}`}>
+          {group.label ? <div className="gl">{group.label}</div> : null}
+          {group.items.map((item) => {
+            const Icon = icons[item.icon];
+            const active =
+              pathname === item.href || pathname.startsWith(`${item.href}/`);
 
-        return (
-          <Link
-            key={item.href}
-            href={item.href}
-            onClick={onNavigate}
-            className={cn(
-              "group flex min-h-11 items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors",
-              active
-                ? "bg-cyan-50 text-cyan-800"
-                : "text-slate-600 hover:bg-slate-100 hover:text-slate-950",
-            )}
-          >
-            <Icon className="size-4.5 shrink-0" aria-hidden="true" />
-            <span className="flex-1">{item.label}</span>
-            <span className="text-[10px] font-semibold text-slate-400">
-              P{item.phase}
-            </span>
-          </Link>
-        );
-      })}
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={active ? "on" : undefined}
+                onClick={onNavigate}
+              >
+                <Icon strokeWidth={2} />
+                {item.label}
+                {item.href === "/requests" ? (
+                  <span
+                    style={{
+                      marginLeft: "auto",
+                      background: "var(--gold)",
+                      color: "#181818",
+                      borderRadius: 999,
+                      padding: "0 7px",
+                      fontSize: 11,
+                      fontWeight: 700,
+                    }}
+                  >
+                    2
+                  </span>
+                ) : null}
+              </Link>
+            );
+          })}
+        </div>
+      ))}
     </nav>
   );
 }

@@ -1,16 +1,2 @@
-import { ModulePlaceholder } from "@/components/shared/module-placeholder";
-
-export default function SettingsPage() {
-  return (
-    <ModulePlaceholder
-      title="Settings"
-      phase={8}
-      description="Company-wide schedules, holidays, leave types and workflow settings are managed here in Phase 8."
-      items={[
-        "Company defaults",
-        "Schedules and holidays",
-        "Approval and scrum rules",
-      ]}
-    />
-  );
-}
+import { PageHead } from "@/components/shared/prototype";
+export default function SettingsPage(){return <><PageHead title="Settings" subtitle="Company wide defaults"/><div className="grid g2"><div className="card"><div className="hd"><h2>Requests</h2></div><div className="bd"><label className="scrum-item"><input type="checkbox" defaultChecked style={{marginTop:3,accentColor:"var(--cyan)"}}/><span>Requests need final approval by a Super Admin after the lead approves<small className="mut" style={{display:"block"}}>Turn off to let leads give the final decision.</small></span></label><button className="btn pri" style={{marginTop:10}}>Save</button></div></div><div className="card"><div className="hd"><h2>Work hours</h2></div><div className="bd"><div className="grid g2" style={{gap:10}}><label className="f"><span>Default schedule</span><select><option>Flexible hours</option><option>Fixed shift</option></select></label><label className="f"><span>Default daily target (hours)</span><input type="text" defaultValue="8"/></label><label className="f"><span>Grace period (min)</span><input type="text" defaultValue="15"/></label><label className="f"><span>Auto sign-off after (hours idle)</span><input type="text" defaultValue="4"/></label></div><button className="btn pri">Save</button></div></div></div></>}

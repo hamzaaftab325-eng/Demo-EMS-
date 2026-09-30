@@ -1,12 +1,2 @@
-import { ModulePlaceholder } from "@/components/shared/module-placeholder";
-
-export default function ReportsPage() {
-  return (
-    <ModulePlaceholder
-      title="Reports"
-      phase={7}
-      description="Reports reuse operational data produced by earlier phases instead of storing separate report copies."
-      items={["Scrum and attendance", "Hours and leave", "CSV exports"]}
-    />
-  );
-}
+import { PageHead } from "@/components/shared/prototype";
+export default function ReportsPage(){return <><PageHead title="Reports" subtitle="Sep 22 to Sep 28" actions={<button className="btn">Export CSV</button>}/><div className="filters"><select><option>Scrum summary</option><option>Scrum items</option><option>Hours against target</option><option>Requests</option></select><select><option>All departments</option><option>Web</option><option>Content</option></select></div><div className="card tbl"><table><thead><tr><th>Employee</th><th className="num">Days worked</th><th className="num">Sign-in scrums</th><th className="num">Sign-off scrums</th><th className="num">Average %</th><th className="num">Obstacles</th></tr></thead><tbody><tr><td>Hamza Aftab</td><td className="num">5</td><td className="num">5</td><td className="num">4</td><td className="num">78%</td><td className="num">1</td></tr><tr><td>Iqra Noor</td><td className="num">5</td><td className="num">5</td><td className="num">5</td><td className="num">86%</td><td className="num">0</td></tr></tbody></table></div><p className="mut" style={{fontSize:13}}>Attendance, hours, late arrivals, absences, breaks and leave reports are also there, all with CSV export.</p></>}

@@ -1,16 +1,2 @@
-import { ModulePlaceholder } from "@/components/shared/module-placeholder";
-
-export default function AuditPage() {
-  return (
-    <ModulePlaceholder
-      title="Audit"
-      phase={8}
-      description="Super Admin audit review and organization controls are completed in Phase 8."
-      items={[
-        "Sensitive action history",
-        "Attendance corrections",
-        "Role, schedule and settings changes",
-      ]}
-    />
-  );
-}
+import { PageHead } from "@/components/shared/prototype";
+export default function AuditPage(){const rows=[["Today 11:02 AM","Rayyan Enzo","Request approved","Rida E Ayesha / Annual Leave / Sep 21 to Sep 22"],["Today 10:40 AM","Danish Mehmood","Request lead approved","Hamza Aftab / Annual Leave / Oct 6 to Oct 8"],["Sep 26 2:00 PM","Faisal Ahmed Siddiqui","Team imported","46 added, 0 updated"],["Sep 25 6:30 PM","Areeba Ibrar","Attendance corrected","Iqra Noor / Sep 25: forgot to sign in, joined call 9:10"]];return <><PageHead title="Audit log" subtitle="Sensitive changes, who made them and when"/><div className="card tbl"><table><thead><tr><th>When</th><th>By</th><th>Action</th><th>Detail</th></tr></thead><tbody>{rows.map(r=><tr key={r[0]+r[2]}><td className="mut">{r[0]}</td><td>{r[1]}</td><td style={{fontWeight:500}}>{r[2]}</td><td className="mut">{r[3]}</td></tr>)}</tbody></table></div></>}

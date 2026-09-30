@@ -1,16 +1,2 @@
-import { ModulePlaceholder } from "@/components/shared/module-placeholder";
-
-export default function RequestsPage() {
-  return (
-    <ModulePlaceholder
-      title="Requests"
-      phase={6}
-      description="Leave, shift change and hour change requests are connected to the approval workflow in Phase 6."
-      items={[
-        "Leave requests",
-        "Shift and hour changes",
-        "Approval history and notifications",
-      ]}
-    />
-  );
-}
+import { PageHead } from "@/components/shared/prototype";
+export default function RequestsPage(){return <><PageHead title="Requests" subtitle="Leave, shift change and hour change requests"/><div className="tabs"><button className="on">My requests</button><button>Approvals</button></div><div className="filters"><button className="btn brand">New request</button><select defaultValue="all"><option value="all">All types</option><option>Leave</option><option>Shift change</option><option>Hour change</option></select></div><div className="card tbl"><table><thead><tr><th>Type</th><th>Dates</th><th>Detail</th><th>Status</th></tr></thead><tbody><tr><td>Annual Leave</td><td>Oct 6 to Oct 8</td><td className="mut">3 days</td><td>With lead</td></tr><tr><td>Hour change</td><td>Sep 25</td><td className="mut">11:00 AM to 5:00 PM</td><td>Rejected</td></tr></tbody></table></div></>}

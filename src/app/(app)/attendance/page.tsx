@@ -1,16 +1,2 @@
-import { ModulePlaceholder } from "@/components/shared/module-placeholder";
-
-export default function AttendancePage() {
-  return (
-    <ModulePlaceholder
-      title="Attendance"
-      phase={5}
-      description="Attendance is calculated from the same workday events created by My Day rather than duplicated manual records."
-      items={[
-        "Hours and target",
-        "Break totals and status",
-        "Corrections with audit trail",
-      ]}
-    />
-  );
-}
+import { PageHead, StatusPill } from "@/components/shared/prototype";
+export default function AttendancePage(){return <><PageHead title="Attendance" subtitle="Daily attendance and hours against schedule"/><div className="filters"><input type="date" defaultValue="2026-09-28"/><select><option>All departments</option><option>Web</option><option>HR</option></select></div><div className="card tbl"><table><thead><tr><th>Employee</th><th>Status</th><th>Signed in</th><th>Signed off</th><th className="num">Net work</th><th className="num">Target</th></tr></thead><tbody><tr><td>Hamza Aftab</td><td><StatusPill label="Present" tone="active"/></td><td>9:04 AM</td><td>–</td><td className="num">5h 01m</td><td className="num">8h</td></tr><tr><td>Iqra Noor</td><td><StatusPill label="Late" tone="away"/></td><td>9:18 AM</td><td>–</td><td className="num">4h 42m</td><td className="num">8h</td></tr></tbody></table></div></>}
