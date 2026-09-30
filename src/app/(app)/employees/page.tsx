@@ -149,7 +149,7 @@ export default async function EmployeesPage({
                 </td>
                 <td>
                   <span className={employee.authLinked ? "access-ok" : "access-pending"}>
-                    {employee.authLinked ? "Auth linked" : "Profile only"}
+                    {employee.authLinked ? "Login ready" : "Login not created"}
                   </span>
                 </td>
               </tr>

@@ -25,7 +25,7 @@ Phase 1 established the production Next.js foundation. Phase 2 added real Supaba
 
 ## Demo organization
 
-- Demo CEO — Super Admin — `demo.admin@example.test`
+- Rayan Enzo — Super Admin / CEO — `demo.admin@example.test`
 - Faisal Ahmed Siddiqui — Director — `director1@example.test`
 - Danish Mehmood — Manager — `manager1@example.test`
 - Hamza Aftab — UX Designer & Front-End Developer — `employee1@example.test`
@@ -33,7 +33,7 @@ Phase 1 established the production Next.js foundation. Phase 2 added real Supaba
 - Haider Razaq — Jr. Full-Stack Developer — `employee3@example.test`
 - Rida-e-Ayesha — UX Designer & Front-End Coordinator — `employee4@example.test`
 
-Only the Demo CEO currently has a Supabase Auth identity. The remaining demo people are real EMS profiles and can receive Auth identities later without duplicating their employee records.
+Rayan Enzo currently has a Supabase Auth identity. Other demo profiles are linked automatically when matching Auth users are created; no duplicate employee records are needed.
 
 ## Stack
 

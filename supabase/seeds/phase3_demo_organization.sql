@@ -2,7 +2,7 @@ begin;
 
 update public.profiles
 set
-  full_name='Demo CEO',
+  full_name='Rayan Enzo',
   job_title='CEO',
   department_id=(select id from public.departments where code='LEAD'),
   role='super_admin',

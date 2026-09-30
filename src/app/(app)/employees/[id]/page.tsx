@@ -120,13 +120,11 @@ export default async function EmployeeDetailPage({
             <div className="bd">
               <p style={{ margin: 0, fontWeight: 600 }}>
                 {employee.authLinked
-                  ? "Supabase Auth linked"
-                  : "Profile created — Auth not provisioned"}
+                  ? "Login ready"
+                  : "Login not created yet"}
               </p>
               <p className="mut" style={{ margin: "6px 0 0", fontSize: 12.5 }}>
-                Phase 3 keeps employee records separate from login provisioning.
-                This prevents profile duplication and keeps credentials out of
-                the employee database.
+                Employee records remain separate from authentication identities. Creating a demo Auth user with the same email links it to this existing profile automatically.
               </p>
             </div>
           </div>
