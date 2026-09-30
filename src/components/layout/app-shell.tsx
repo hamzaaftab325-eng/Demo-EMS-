@@ -4,7 +4,8 @@ import Image from "next/image";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { LogOut, Menu, Moon } from "lucide-react";
 import { logout } from "@/app/auth/actions";
-import { NavigationLinks } from "@/components/layout/navigation-links";\nimport { PresenceHeartbeat } from "@/components/presence/presence-heartbeat";
+import { NavigationLinks } from "@/components/layout/navigation-links";
+import { PresenceHeartbeat } from "@/components/presence/presence-heartbeat";
 import { roleLabel } from "@/lib/navigation";
 import type { CurrentProfile } from "@/lib/auth/current-profile";
 
@@ -48,7 +49,8 @@ export function AppShell({
   }
 
   return (
-    <div className="app">\n      <PresenceHeartbeat />
+    <div className="app">
+      <PresenceHeartbeat />
       {menuOpen ? (
         <button
           className="mobile-backdrop"
@@ -79,8 +81,7 @@ export function AppShell({
           <div className="demo">
             <b>Development account.</b>
             <span>
-              Authentication is live. Operational modules still use sample data
-              until their implementation phases.
+              Authentication and Phases 3–5 use live Supabase data. Later modules remain clearly staged.
             </span>
           </div>
         ) : null}

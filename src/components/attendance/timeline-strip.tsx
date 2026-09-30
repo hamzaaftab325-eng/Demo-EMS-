@@ -20,7 +20,7 @@ export function AttendanceTimeline({
   const start = new Date(row.firstSignInAt).getTime();
   const end = row.finalSignOffAt
     ? new Date(row.finalSignOffAt).getTime()
-    : Date.now();
+    : new Date(row.snapshotAt).getTime();
   const safeEnd = Math.max(end, start + 60_000);
   const span = safeEnd - start;
 

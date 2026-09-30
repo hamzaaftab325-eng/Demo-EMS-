@@ -28,6 +28,7 @@ export type TeamAttendanceRow = {
   employmentStatus: EmployeeRow["employmentStatus"];
   authLinked: boolean;
   workDate: string;
+  snapshotAt: string;
   presenceStatus: LiveDisplayStatus;
   tabConnected: boolean;
   lastActivityAt: string | null;
@@ -169,6 +170,7 @@ function mapRow(
     employmentStatus: employee.employmentStatus,
     authLinked: employee.authLinked,
     workDate,
+    snapshotAt: now.toISOString(),
     presenceStatus,
     tabConnected: presence?.tab_connected ?? false,
     lastActivityAt: presence?.last_activity_at ?? null,

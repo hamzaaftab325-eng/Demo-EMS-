@@ -487,8 +487,6 @@ export function MyDayClient({ state }: { state: MyDayState }) {
   const signedOff = state.workday?.status === "signed_off";
   const started =
     state.workday != null && state.workday.status !== "not_started";
-  const active =
-    started && state.workday?.status !== "signed_off";
   const openObstacles = state.obstacles.filter(
     (obstacle) => obstacle.status === "open",
   );
