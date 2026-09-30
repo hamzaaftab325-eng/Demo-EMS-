@@ -65,9 +65,9 @@ export async function createEmployee(formData: FormData) {
       p_employment_type: employmentType,
       p_role: role,
       p_timezone: timezone,
-      p_hire_date: hireDate,
-      p_manager_id: managerId,
-      p_schedule_id: scheduleId,
+      p_hire_date: hireDate ?? undefined,
+      p_manager_id: managerId ?? undefined,
+      p_schedule_id: scheduleId ?? undefined,
       p_is_test_account: current.is_test_account,
     },
   );
@@ -110,7 +110,7 @@ export async function updateEmployee(formData: FormData) {
     fail("/employees", "Employee ID is missing.");
   }
 
-  const { error } = await supabase.rpc("admin_update_employee", {
+  const updateArgs = {
     p_employee_id: employeeId,
     p_employee_code: employeeCode,
     p_email: email,
@@ -125,7 +125,9 @@ export async function updateEmployee(formData: FormData) {
     p_schedule_id: scheduleId,
     p_employment_status: employmentStatus,
     p_deactivation_reason: deactivationReason,
-  });
+  } as unknown as Database["public"]["Functions"]["admin_update_employee"]["Args"];
+
+  const { error } = await supabase.rpc("admin_update_employee", updateArgs);
 
   if (error) {
     fail(
