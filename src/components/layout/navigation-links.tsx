@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import {
   CalendarDays,
   ChartNoAxesCombined,
-  CircleRadio,
+  Radio,
   ClipboardList,
   Grid2X2,
   Inbox,
@@ -22,7 +22,7 @@ const icons: Record<NavIcon, LucideIcon> = {
   sun: Sun,
   inbox: Inbox,
   grid: Grid2X2,
-  radio: CircleRadio,
+  radio: Radio,
   clip: ClipboardList,
   cal: CalendarDays,
   users: Users,

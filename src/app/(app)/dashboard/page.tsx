@@ -10,7 +10,7 @@ const stats = [
   ["On leave", "3", "--break"],
 ] as const;
 
-const departments = [
+const departments: Array<[string, number, number]> = [
   ["Web", 7, 9],
   ["Content", 5, 8],
   ["Design", 4, 6],
