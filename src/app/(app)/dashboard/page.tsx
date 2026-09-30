@@ -1,40 +1,46 @@
-import { TEAM_ROLES } from "@/lib/navigation";
+import { PageHead } from "@/components/shared/prototype";
 import { requireRole } from "@/lib/auth/current-profile";
-import { PageHead, Avatar } from "@/components/shared/prototype";
-
-const stats = [
-  ["People", "46", "--fg"],
-  ["Active", "24", "--active"],
-  ["Idle", "5", "--idle"],
-  ["Away", "3", "--away"],
-  ["On break", "4", "--break"],
-  ["Not signed in", "7", "--offline"],
-  ["On leave", "3", "--break"],
-] as const;
-
-const departments: Array<[string, number, number]> = [
-  ["Web", 7, 9],
-  ["Content", 5, 8],
-  ["Design", 4, 6],
-  ["Digital Ads", 4, 7],
-  ["Digital Creative", 3, 5],
-];
+import { TEAM_ROLES } from "@/lib/navigation";
+import {
+  getEmployeeDirectory,
+  getOrganizationSummary,
+} from "@/lib/data/organization";
 
 export default async function DashboardPage() {
-  await requireRole(TEAM_ROLES);
+  const current = await requireRole(TEAM_ROLES);
+  const employees = await getEmployeeDirectory(current);
+  const summary = getOrganizationSummary(employees);
+
+  const stats = [
+    ["People", summary.total, "--fg"],
+    ["Active profiles", summary.active, "--active"],
+    ["Directors", summary.directors, "--cyan"],
+    ["Managers", summary.managers, "--gold"],
+    ["Employees", summary.employees, "--fg"],
+    ["On leave", summary.onLeave, "--break"],
+    ["Auth linked", summary.linked, "--cyan"],
+  ] as const;
+
   return (
     <>
-      <PageHead title="Dashboard" subtitle="Monday, September 28 · 2:40 PM Karachi" />
+      <PageHead
+        title="Dashboard"
+        subtitle={
+          current.is_test_account
+            ? "Live Phase 3 organization data from Supabase"
+            : "Organization overview"
+        }
+      />
 
       <div className="grid g7" style={{ marginBottom: 16 }}>
         {stats.map(([label, value, color]) => (
-          <button className="stat" key={label}>
+          <div className="stat" key={label}>
             <span className="l">
               <i className="dot" style={{ background: `var(${color})` }} />
               {label}
             </span>
             <div className="n">{value}</div>
-          </button>
+          </div>
         ))}
       </div>
 
@@ -42,41 +48,69 @@ export default async function DashboardPage() {
         <div className="card">
           <div className="hd">
             <h2>Departments</h2>
-            <a href="/live-view" className="mut" style={{ fontSize: 13 }}>Live view</a>
+            <a href="/employees" className="mut" style={{ fontSize: 13 }}>
+              Employees
+            </a>
           </div>
+
           <div className="bd">
-            {departments.map(([name, working, total]) => (
-              <div key={name} style={{ marginBottom: 12 }}>
-                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 5 }}>
-                  <span style={{ fontWeight: 500 }}>{name}</span>
-                  <span className="mut">{working} of {total} working</span>
+            {summary.departments.map((department) => {
+              const percent =
+                department.total === 0
+                  ? 0
+                  : Math.round((department.active / department.total) * 100);
+
+              return (
+                <div key={department.name} style={{ marginBottom: 12 }}>
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      marginBottom: 5,
+                    }}
+                  >
+                    <span style={{ fontWeight: 500 }}>{department.name}</span>
+                    <span className="mut">
+                      {department.active} of {department.total} active
+                    </span>
+                  </div>
+
+                  <div className="bar" style={{ height: 10 }}>
+                    <i
+                      style={{
+                        width: `${percent}%`,
+                        background: "var(--active)",
+                      }}
+                    />
+                  </div>
                 </div>
-                <div className="bar" style={{ height: 10 }}>
-                  <i style={{ width: `${(working / total) * 100}%`, background: "var(--active)" }} />
-                  <i style={{ flex: 1, background: "var(--offline)" }} />
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
 
         <div className="grid" style={{ gap: 16 }}>
           <div className="card">
-            <div className="hd"><h2>Requests waiting for you</h2><a href="/requests" className="mut" style={{ fontSize: 13 }}>Review</a></div>
+            <div className="hd">
+              <h2>Requests waiting for you</h2>
+            </div>
             <div className="bd">
-              <div style={{ fontFamily: "Archivo,Inter,system-ui,sans-serif", fontSize: 32, fontWeight: 700 }}>2</div>
-              <p className="mut" style={{ margin: 0, fontSize: 13 }}>Includes final approvals after the lead approved</p>
+              <div className="phase-value">—</div>
+              <p className="mut phase-copy">
+                Real request counts are connected in Phase 6.
+              </p>
             </div>
           </div>
+
           <div className="card">
-            <div className="hd"><h2>Obstacles today</h2><a href="/scrum-board" className="mut" style={{ fontSize: 13 }}>Scrum board</a></div>
+            <div className="hd">
+              <h2>Obstacles today</h2>
+            </div>
             <div className="bd">
-              <ul className="list">
-                <li style={{ alignItems: "flex-start" }}>
-                  <Avatar initials="HA" color="#3B82F6" size={26} />
-                  <div><div style={{ fontWeight: 500, fontSize: 13 }}>Hamza Aftab</div><div className="mut" style={{ fontSize: 12.5 }}>Waiting for final hero assets.</div></div>
-                </li>
-              </ul>
+              <div className="phase-value">—</div>
+              <p className="mut phase-copy">
+                Real scrum obstacles are connected in Phase 4.
+              </p>
             </div>
           </div>
         </div>
@@ -84,26 +118,31 @@ export default async function DashboardPage() {
 
       <div className="grid g2">
         <div className="card">
-          <div className="hd"><h2>Expected but not signed in</h2></div>
+          <div className="hd">
+            <h2>Reporting structure</h2>
+          </div>
           <div className="bd">
-            <ul className="list">
-              <li style={{ justifyContent: "space-between" }}><span>Sadaf Riaz</span><span className="mut" style={{ fontSize: 12.5 }}>Expected by 9:15 AM</span></li>
-              <li style={{ justifyContent: "space-between" }}><span>Farah Waheed</span><span className="mut" style={{ fontSize: 12.5 }}>Expected by 9:15 AM</span></li>
-            </ul>
-            <p className="mut" style={{ fontSize: 12.5, margin: "10px 0 0" }}>4 on flexible hours have not signed in yet. That is fine, they can start any time.</p>
+            <div className="org-flow">
+              <span>CEO / Super Admin</span>
+              <b>↓</b>
+              <span>Director</span>
+              <b>↓</b>
+              <span>Manager</span>
+              <b>↓</b>
+              <span>Employees</span>
+            </div>
           </div>
         </div>
+
         <div className="card">
-          <div className="hd"><h2>Hours against target</h2></div>
+          <div className="hd">
+            <h2>Hours against target</h2>
+          </div>
           <div className="bd">
-            {["Hamza Aftab","Iqra Noor","Tayyaba Hafeez","Sadaf Riaz"].map((name, i) => (
-              <div key={name} style={{ marginBottom: 12 }}>
-                <div style={{ display: "flex", justifyContent: "space-between" }}>
-                  <span>{name}</span><span className="mut">{(3.8 + i * .6).toFixed(1)}h / 8h</span>
-                </div>
-                <div className="bar" style={{ marginTop: 6 }}><i style={{ width: `${48 + i * 9}%`, background: "var(--cyan)" }} /></div>
-              </div>
-            ))}
+            <div className="phase-value">—</div>
+            <p className="mut phase-copy">
+              Workday and attendance calculations become live in Phase 5.
+            </p>
           </div>
         </div>
       </div>

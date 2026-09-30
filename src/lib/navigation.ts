@@ -1,7 +1,17 @@
-export type EmsRole = "employee" | "manager" | "super_admin";
+export type EmsRole =
+  | "employee"
+  | "manager"
+  | "director"
+  | "super_admin";
 
-export const ALL_ROLES = ["employee", "manager", "super_admin"] as const;
-export const TEAM_ROLES = ["manager", "super_admin"] as const;
+export const ALL_ROLES = [
+  "employee",
+  "manager",
+  "director",
+  "super_admin",
+] as const;
+
+export const TEAM_ROLES = ["manager", "director", "super_admin"] as const;
 export const ADMIN_ROLES = ["super_admin"] as const;
 
 export type NavIcon =
@@ -117,7 +127,12 @@ export const navigationGroups: NavGroup[] = [
 ];
 
 export function isEmsRole(value: unknown): value is EmsRole {
-  return value === "employee" || value === "manager" || value === "super_admin";
+  return (
+    value === "employee" ||
+    value === "manager" ||
+    value === "director" ||
+    value === "super_admin"
+  );
 }
 
 export function roleLabel(role: EmsRole) {
@@ -126,6 +141,8 @@ export function roleLabel(role: EmsRole) {
       return "Employee";
     case "manager":
       return "Manager";
+    case "director":
+      return "Director";
     case "super_admin":
       return "Super Admin";
   }

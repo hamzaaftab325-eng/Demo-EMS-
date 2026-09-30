@@ -167,3 +167,25 @@ label.f input,label.f select{width:100%}
   .login-brand{min-height:auto;padding:28px 24px;gap:42px}
   .login-form-panel{padding:28px 24px}
 }
+
+.employee-link{text-decoration:none;color:inherit;display:block}
+.access-ok,.access-pending{display:inline-flex;align-items:center;border-radius:999px;padding:2px 8px;font-size:12px;font-weight:500}
+.access-ok{background:color-mix(in srgb,var(--active) 13%,transparent);color:color-mix(in srgb,var(--active) 78%,var(--fg))}
+.access-pending{background:var(--muted);color:var(--mfg)}
+.employee-form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:2px 14px}
+.employee-form-grid label.f input,.employee-form-grid label.f select{width:100%}
+.employee-form-actions{display:flex;gap:8px;align-items:center;margin-top:8px}
+.form-error,.form-success{border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:14px;font-size:13px}
+.form-error{border-color:color-mix(in srgb,var(--red) 35%,var(--border));background:color-mix(in srgb,var(--red) 8%,var(--surface));color:var(--red)}
+.form-success{border-color:color-mix(in srgb,var(--active) 35%,var(--border));background:color-mix(in srgb,var(--active) 8%,var(--surface))}
+.employee-kv{grid-template-columns:92px 1fr}
+.phase-value{font-family:Archivo,Inter,system-ui,sans-serif;font-size:30px;font-weight:700;line-height:1}
+.phase-copy{margin:7px 0 0;font-size:12.5px}
+.phase-notice{padding:28px 24px!important;max-width:720px}
+.phase-notice h2{font-size:20px;margin:12px 0 6px}
+.phase-notice p{margin:0;line-height:1.65}
+.phase-chip{display:inline-flex;padding:3px 9px;border-radius:999px;background:color-mix(in srgb,var(--cyan) 12%,transparent);color:var(--cyan);font-size:12px;font-weight:600}
+.org-flow{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.org-flow span{border:1px solid var(--border);background:var(--muted);padding:8px 10px;border-radius:7px;font-weight:500}
+.org-flow b{color:var(--mfg)}
+@media(max-width:720px){.employee-form-grid{grid-template-columns:1fr}.employee-form-actions{flex-wrap:wrap}}

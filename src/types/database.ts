@@ -1495,10 +1495,45 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      admin_create_employee: {
+        Args: {
+          p_department_id: string
+          p_email: string
+          p_employee_code: string
+          p_employment_type: Database["public"]["Enums"]["employment_type"]
+          p_full_name: string
+          p_hire_date?: string
+          p_is_test_account?: boolean
+          p_job_title: string
+          p_manager_id?: string
+          p_role: Database["public"]["Enums"]["app_role"]
+          p_schedule_id?: string
+          p_timezone?: string
+        }
+        Returns: string
+      }
+      admin_update_employee: {
+        Args: {
+          p_deactivation_reason?: string
+          p_department_id: string
+          p_email: string
+          p_employee_code: string
+          p_employee_id: string
+          p_employment_status: Database["public"]["Enums"]["employment_status"]
+          p_employment_type: Database["public"]["Enums"]["employment_type"]
+          p_full_name: string
+          p_hire_date: string
+          p_job_title: string
+          p_manager_id: string
+          p_role: Database["public"]["Enums"]["app_role"]
+          p_schedule_id: string
+          p_timezone: string
+        }
+        Returns: undefined
+      }
     }
     Enums: {
-      app_role: "employee" | "manager" | "super_admin"
+      app_role: "employee" | "manager" | "director" | "super_admin"
       approval_decision: "pending" | "approved" | "rejected"
       approval_stage: "manager" | "final"
       attendance_event_type:
@@ -1687,7 +1722,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["employee", "manager", "super_admin"],
+      app_role: ["employee", "manager", "director", "super_admin"],
       approval_decision: ["pending", "approved", "rejected"],
       approval_stage: ["manager", "final"],
       attendance_event_type: [
