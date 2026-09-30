@@ -16,7 +16,11 @@ import {
   Users,
   type LucideIcon,
 } from "lucide-react";
-import { navigationGroups, type NavIcon } from "@/lib/navigation";
+import {
+  navigationGroups,
+  type EmsRole,
+  type NavIcon,
+} from "@/lib/navigation";
 
 const icons: Record<NavIcon, LucideIcon> = {
   sun: Sun,
@@ -33,51 +37,65 @@ const icons: Record<NavIcon, LucideIcon> = {
 };
 
 export function NavigationLinks({
+  role,
   onNavigate,
 }: {
+  role: EmsRole;
   onNavigate?: () => void;
 }) {
   const pathname = usePathname();
 
   return (
     <nav className="nav" aria-label="EMS navigation">
-      {navigationGroups.map((group, groupIndex) => (
-        <div className="navgroup" key={group.label ?? `group-${groupIndex}`}>
-          {group.label ? <div className="gl">{group.label}</div> : null}
-          {group.items.map((item) => {
-            const Icon = icons[item.icon];
-            const active =
-              pathname === item.href || pathname.startsWith(`${item.href}/`);
+      {navigationGroups.map((group, groupIndex) => {
+        const visibleItems = group.items.filter((item) =>
+          item.roles.includes(role),
+        );
 
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={active ? "on" : undefined}
-                onClick={onNavigate}
-              >
-                <Icon strokeWidth={2} />
-                {item.label}
-                {item.href === "/requests" ? (
-                  <span
-                    style={{
-                      marginLeft: "auto",
-                      background: "var(--gold)",
-                      color: "#181818",
-                      borderRadius: 999,
-                      padding: "0 7px",
-                      fontSize: 11,
-                      fontWeight: 700,
-                    }}
-                  >
-                    2
-                  </span>
-                ) : null}
-              </Link>
-            );
-          })}
-        </div>
-      ))}
+        if (visibleItems.length === 0) {
+          return null;
+        }
+
+        return (
+          <div className="navgroup" key={group.label ?? `group-${groupIndex}`}>
+            {group.label ? <div className="gl">{group.label}</div> : null}
+
+            {visibleItems.map((item) => {
+              const Icon = icons[item.icon];
+              const active =
+                pathname === item.href || pathname.startsWith(`${item.href}/`);
+
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={active ? "on" : undefined}
+                  onClick={onNavigate}
+                >
+                  <Icon strokeWidth={2} />
+                  {item.label}
+
+                  {item.href === "/requests" ? (
+                    <span
+                      style={{
+                        marginLeft: "auto",
+                        background: "var(--gold)",
+                        color: "#181818",
+                        borderRadius: 999,
+                        padding: "0 7px",
+                        fontSize: 11,
+                        fontWeight: 700,
+                      }}
+                    >
+                      2
+                    </span>
+                  ) : null}
+                </Link>
+              );
+            })}
+          </div>
+        );
+      })}
     </nav>
   );
 }

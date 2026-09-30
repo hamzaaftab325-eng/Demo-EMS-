@@ -1,15 +1,35 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useState, type ReactNode } from "react";
-import { Menu, Moon } from "lucide-react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { LogOut, Menu, Moon } from "lucide-react";
+import { logout } from "@/app/auth/actions";
 import { NavigationLinks } from "@/components/layout/navigation-links";
+import { roleLabel } from "@/lib/navigation";
+import type { CurrentProfile } from "@/lib/auth/current-profile";
 
-export function AppShell({ children }: { children: ReactNode }) {
+function initials(name: string) {
+  return name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase())
+    .join("");
+}
+
+export function AppShell({
+  profile,
+  children,
+}: {
+  profile: CurrentProfile;
+  children: ReactNode;
+}) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const avatar = useMemo(() => initials(profile.full_name) || "EMS", [profile.full_name]);
 
   useEffect(() => {
     const saved = window.localStorage.getItem("ems-theme");
+
     if (saved === "light" || saved === "dark") {
       document.documentElement.dataset.theme = saved;
     }
@@ -18,8 +38,11 @@ export function AppShell({ children }: { children: ReactNode }) {
   function toggleTheme() {
     const current =
       document.documentElement.dataset.theme ||
-      (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+      (window.matchMedia("(prefers-color-scheme: dark)").matches
+        ? "dark"
+        : "light");
     const next = current === "dark" ? "light" : "dark";
+
     document.documentElement.dataset.theme = next;
     window.localStorage.setItem("ems-theme", next);
   }
@@ -44,17 +67,23 @@ export function AppShell({ children }: { children: ReactNode }) {
             priority
           />
         </div>
-        <NavigationLinks onNavigate={() => setMenuOpen(false)} />
+
+        <NavigationLinks
+          role={profile.role}
+          onNavigate={() => setMenuOpen(false)}
+        />
       </aside>
 
       <div className="main">
-        <div className="demo">
-          <b>Preview with sample data.</b>
-          <span>
-            Buttons work here but nothing is saved. Switch &quot;View as&quot; to
-            see each access level.
-          </span>
-        </div>
+        {profile.is_test_account ? (
+          <div className="demo">
+            <b>Development account.</b>
+            <span>
+              Authentication is live. Operational modules still use sample data
+              until their implementation phases.
+            </span>
+          </div>
+        ) : null}
 
         <header className="top">
           <button
@@ -67,15 +96,10 @@ export function AppShell({ children }: { children: ReactNode }) {
 
           <div className="sp" />
 
-          <label className="mut hide-sm" htmlFor="roleSel" style={{ fontSize: 13 }}>
-            View as
-          </label>
-
-          <select id="roleSel" aria-label="View as" defaultValue="super">
-            <option value="super">Faisal · Super Admin</option>
-            <option value="manager">Danish · Manager (Web)</option>
-            <option value="employee">Ghulam · Employee</option>
-          </select>
+          <div className="account-copy hide-sm">
+            <strong>{profile.full_name}</strong>
+            <span>{roleLabel(profile.role)}</span>
+          </div>
 
           <button
             className="btn ghost"
@@ -87,10 +111,18 @@ export function AppShell({ children }: { children: ReactNode }) {
 
           <span
             className="av"
+            title={profile.full_name}
             style={{ width: 32, height: 32, background: "#00AFDD" }}
           >
-            FA
+            {avatar}
           </span>
+
+          <form action={logout}>
+            <button className="btn ghost" type="submit" aria-label="Sign out">
+              <LogOut size={17} />
+              <span className="hide-sm">Sign out</span>
+            </button>
+          </form>
         </header>
 
         <main className="content">

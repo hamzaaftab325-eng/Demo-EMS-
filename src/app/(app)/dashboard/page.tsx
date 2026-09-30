@@ -1,3 +1,5 @@
+import { TEAM_ROLES } from "@/lib/navigation";
+import { requireRole } from "@/lib/auth/current-profile";
 import { PageHead, Avatar } from "@/components/shared/prototype";
 
 const stats = [
@@ -18,7 +20,8 @@ const departments: Array<[string, number, number]> = [
   ["Digital Creative", 3, 5],
 ];
 
-export default function DashboardPage() {
+export default async function DashboardPage() {
+  await requireRole(TEAM_ROLES);
   return (
     <>
       <PageHead title="Dashboard" subtitle="Monday, September 28 · 2:40 PM Karachi" />
