@@ -109,6 +109,15 @@ export type MyDayState = {
     closedAt: string | null;
     createdAt: string;
     updatedAt: string;
+    firstSignInAt: string | null;
+    finalSignOffAt: string | null;
+    scheduledMinutes: number;
+    grossMinutes: number;
+    breakMinutes: number;
+    meetingMinutes: number;
+    netWorkMinutes: number;
+    lateMinutes: number;
+    overtimeMinutes: number;
   } | null;
   scrumEntry: {
     id: string;
@@ -195,6 +204,15 @@ function parseState(value: Json): MyDayState {
           closedAt: nullableStr(workdayRaw.closed_at),
           createdAt: str(workdayRaw.created_at),
           updatedAt: str(workdayRaw.updated_at),
+          firstSignInAt: nullableStr(workdayRaw.first_sign_in_at),
+          finalSignOffAt: nullableStr(workdayRaw.final_sign_off_at),
+          scheduledMinutes: num(workdayRaw.scheduled_minutes),
+          grossMinutes: num(workdayRaw.gross_minutes),
+          breakMinutes: num(workdayRaw.break_minutes),
+          meetingMinutes: num(workdayRaw.meeting_minutes),
+          netWorkMinutes: num(workdayRaw.net_work_minutes),
+          lateMinutes: num(workdayRaw.late_minutes),
+          overtimeMinutes: num(workdayRaw.overtime_minutes),
         }
       : null,
     scrumEntry: scrumRaw
