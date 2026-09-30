@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { PageHead } from "@/components/shared/prototype";
 import { requireRole } from "@/lib/auth/current-profile";
 import { TEAM_ROLES } from "@/lib/navigation";
@@ -48,9 +49,9 @@ export default async function DashboardPage() {
         <div className="card">
           <div className="hd">
             <h2>Departments</h2>
-            <a href="/employees" className="mut" style={{ fontSize: 13 }}>
+            <Link href="/employees" className="mut" style={{ fontSize: 13 }}>
               Employees
-            </a>
+            </Link>
           </div>
 
           <div className="bd">

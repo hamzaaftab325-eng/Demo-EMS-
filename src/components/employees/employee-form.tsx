@@ -1,3 +1,4 @@
+import Link from "next/link";
 import type { EmsRole } from "@/lib/navigation";
 import type {
   DepartmentOption,
@@ -204,9 +205,9 @@ export function EmployeeForm({
           <button className="btn brand" type="submit">
             {submitLabel}
           </button>
-          <a className="btn" href="/employees">
+          <Link className="btn" href="/employees">
             Cancel
-          </a>
+          </Link>
         </div>
       </div>
     </form>
