@@ -89,3 +89,16 @@ Phase 5 will add heartbeat, idle/away detection, official attendance calculation
 **Phase 5 — Attendance & Presence**
 
 Phase 5 will make official attendance calculations and realtime status live: heartbeat, idle/away, attendance status, target hours, break totals, late/core-hour rules, attendance corrections, and the management Live View.
+
+
+### Manager visibility after Phase 4
+
+Phase 4 creates the real employee scrum/workday records and RLS already allows managers and directors to read only employees in their reporting subtree.
+
+The dedicated management monitoring UI remains intentionally deferred:
+- **Phase 7 — Scrum Board:** team scrum, blockers, progress, filters, and manager-added work.
+- Danish can access Hamza, Ghulam, Haider, and Rida once those users have operational records.
+- Faisal can access Danish and everyone below Danish.
+- Super Admin can access the full organization.
+
+This avoids building a second copy of scrum data: Phase 7 will read the same Phase 4 records.
