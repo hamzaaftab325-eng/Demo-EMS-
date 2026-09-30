@@ -367,7 +367,7 @@ function Timeline({ state }: { state: MyDayState }) {
   const earliest = values.length ? Math.min(...values) : now;
   const latest = values.length ? Math.max(...values, now) : now;
 
-  let start = Math.floor(earliest / hour) * hour;
+  const start = Math.floor(earliest / hour) * hour;
   let end = Math.ceil(latest / hour) * hour;
 
   if (end <= start) end = start + hour;
