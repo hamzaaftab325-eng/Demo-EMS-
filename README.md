@@ -25,3 +25,8 @@ This repository contains the Next.js application foundation, shared EMS shell, S
 Never expose a Supabase secret/service-role key in `NEXT_PUBLIC_*`.
 
 The approved roadmap is stored in `docs/EMS_Production_Plan_FINAL.docx`.
+
+
+## Deployment
+
+Phase 1 foundation is ready for Vercel production deployment from the `main` branch.
