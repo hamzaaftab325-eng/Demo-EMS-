@@ -24,12 +24,13 @@ type AccessContext = {
 export const getCurrentAccess = cache(async (): Promise<AccessContext> => {
   const supabase = await createClient();
 
-  const {
-    data: { claims },
-    error: claimsError,
-  } = await supabase.auth.getClaims();
+  const { data: claimsData, error: claimsError } =
+    await supabase.auth.getClaims();
 
-  const userId = !claimsError && claims?.sub ? String(claims.sub) : null;
+  const userId =
+    !claimsError && claimsData?.claims?.sub
+      ? String(claimsData.claims.sub)
+      : null;
 
   if (!userId) {
     return { userId: null, profile: null };

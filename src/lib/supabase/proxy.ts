@@ -60,11 +60,9 @@ export async function updateSession(request: NextRequest) {
 
   // Supabase recommends calling getClaims immediately after client creation.
   // It validates the JWT before protected Server Components are rendered.
-  const {
-    data: { claims },
-  } = await supabase.auth.getClaims();
+  const { data: claimsData } = await supabase.auth.getClaims();
 
-  const isAuthenticated = Boolean(claims?.sub);
+  const isAuthenticated = Boolean(claimsData?.claims?.sub);
 
   if (!isAuthenticated && !isLoginRoute) {
     return redirectToLogin(request);
