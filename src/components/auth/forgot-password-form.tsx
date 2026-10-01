@@ -3,11 +3,10 @@
 import Image from "next/image";
 import Link from "next/link";
 import { Mail } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 
 export function ForgotPasswordForm() {
-  const supabase = useMemo(() => createClient(), []);
   const [email, setEmail] = useState("");
   const [pending, setPending] = useState(false);
   const [sent, setSent] = useState(false);
@@ -15,6 +14,8 @@ export function ForgotPasswordForm() {
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setPending(true);
+
+    const supabase = createClient();
 
     await supabase.auth.resetPasswordForEmail(email.trim().toLowerCase(), {
       redirectTo: `${window.location.origin}/set-password`,

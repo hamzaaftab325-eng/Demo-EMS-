@@ -3,13 +3,12 @@
 import Image from "next/image";
 import Link from "next/link";
 import { LockKeyhole } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 
 type ScreenState = "checking" | "ready" | "invalid" | "saving";
 
 export function SetPasswordForm() {
-  const supabase = useMemo(() => createClient(), []);
   const [state, setState] = useState<ScreenState>("checking");
   const [message, setMessage] = useState<string | null>(null);
   const [password, setPassword] = useState("");
@@ -19,6 +18,7 @@ export function SetPasswordForm() {
     let cancelled = false;
 
     async function establishSession() {
+      const supabase = createClient();
       const hash = new URLSearchParams(window.location.hash.slice(1));
       const accessToken = hash.get("access_token");
       const refreshToken = hash.get("refresh_token");
@@ -83,7 +83,7 @@ export function SetPasswordForm() {
     return () => {
       cancelled = true;
     };
-  }, [supabase]);
+  }, []);
 
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -107,6 +107,8 @@ export function SetPasswordForm() {
     }
 
     setState("saving");
+
+    const supabase = createClient();
 
     const { error: passwordError } = await supabase.auth.updateUser({
       password,
