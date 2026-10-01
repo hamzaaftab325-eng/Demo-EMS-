@@ -37,6 +37,9 @@ jobs:
       - name: Employee access verification
         run: npm run employees:check
 
+      - name: My Day and Scrum verification
+        run: npm run myday:check
+
       - name: Lint
         run: npm run lint
 
