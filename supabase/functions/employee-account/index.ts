@@ -4,7 +4,6 @@ import { createClient } from "npm:@supabase/supabase-js@2.117.1";
 type InviteBody = {
   action: "invite";
   employee_id: string;
-  redirect_to: string;
 };
 
 const allowedOrigins = new Set([
@@ -12,6 +11,9 @@ const allowedOrigins = new Set([
   "http://localhost:3000",
   "http://127.0.0.1:3000",
 ]);
+
+const accountSetupRedirect =
+  "https://demo-ems-ten.vercel.app/set-password?mode=invite";
 
 function corsHeaders(req: Request) {
   const origin = req.headers.get("origin") ?? "";
@@ -36,15 +38,6 @@ function json(req: Request, status: number, payload: Record<string, unknown>) {
       "Cache-Control": "no-store",
     },
   });
-}
-
-function validSetupRedirect(value: string) {
-  try {
-    const url = new URL(value);
-    return allowedOrigins.has(url.origin) && url.pathname === "/set-password";
-  } catch {
-    return false;
-  }
 }
 
 function getDefaultKey(jsonValue: string | undefined, fallback?: string) {
@@ -150,12 +143,8 @@ Deno.serve(async (req: Request) => {
     return json(req, 400, { error: "Invalid request body." });
   }
 
-  if (
-    body.action !== "invite" ||
-    !body.employee_id ||
-    !validSetupRedirect(body.redirect_to)
-  ) {
-    return json(req, 400, { error: "Invalid employee or setup URL." });
+  if (body.action !== "invite" || !body.employee_id) {
+    return json(req, 400, { error: "Invalid employee invitation request." });
   }
 
   const { data: target, error: targetError } = await adminClient
@@ -215,7 +204,7 @@ Deno.serve(async (req: Request) => {
   if (target.auth_user_id) {
     const { error: resendError } =
       await publicClient.auth.resetPasswordForEmail(target.email, {
-        redirectTo: body.redirect_to,
+        redirectTo: accountSetupRedirect,
       });
 
     if (resendError) {
@@ -252,7 +241,7 @@ Deno.serve(async (req: Request) => {
 
   const { data: inviteData, error: inviteError } =
     await adminClient.auth.admin.inviteUserByEmail(target.email, {
-      redirectTo: body.redirect_to,
+      redirectTo: accountSetupRedirect,
       data: {
         full_name: target.full_name,
         employee_code: target.employee_code,
