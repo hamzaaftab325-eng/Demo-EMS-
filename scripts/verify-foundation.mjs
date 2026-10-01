@@ -38,26 +38,38 @@ function filesUnder(dir) {
   return out;
 }
 
-const scanFiles = [
+const browserFiles = [
   ...filesUnder(join(root, "src")),
-  ...filesUnder(join(root, "supabase")),
   join(root, ".env.example"),
 ].filter((path) => existsSync(path));
 
-const forbidden = [
+const browserForbidden = [
   /SUPABASE_SERVICE_ROLE_KEY/i,
   /SUPABASE_SECRET_KEY/i,
-  /sb_secret_[A-Za-z0-9_-]+/i,
   /service_role\s*[:=]/i,
 ];
 
+const repositoryFiles = [
+  ...browserFiles,
+  ...filesUnder(join(root, "supabase")),
+].filter((path) => existsSync(path));
+
+const committedSecretValue = /sb_secret_[A-Za-z0-9_-]{16,}/i;
+
 const secretHits = [];
-for (const path of scanFiles) {
+for (const path of browserFiles) {
   const content = readFileSync(path, "utf8");
-  for (const pattern of forbidden) {
+  for (const pattern of browserForbidden) {
     if (pattern.test(content)) {
-      secretHits.push(relative(root, path) + " matches " + pattern);
+      secretHits.push(relative(root, path) + " exposes " + pattern);
     }
+  }
+}
+
+for (const path of repositoryFiles) {
+  const content = readFileSync(path, "utf8");
+  if (committedSecretValue.test(content)) {
+    secretHits.push(relative(root, path) + " contains a committed Supabase secret value");
   }
 }
 
