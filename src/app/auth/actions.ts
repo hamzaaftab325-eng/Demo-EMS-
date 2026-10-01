@@ -63,7 +63,10 @@ export async function login(formData: FormData) {
   ) {
     await supabase.auth.signOut();
     loginError(
-      profile && !profile.is_active ? "inactive_account" : "not_authorized",
+      profile &&
+        (!profile.is_active || profile.employment_status === "deactivated")
+        ? "inactive_account"
+        : "not_authorized",
       requestedNext,
     );
   }
