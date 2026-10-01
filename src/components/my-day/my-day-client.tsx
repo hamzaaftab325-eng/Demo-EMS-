@@ -23,10 +23,64 @@ import type {
 } from "@/lib/my-day/state";
 
 type TimelineSegment = {
-  kind: "active" | "break" | "meeting";
+  kind:
+    | "active"
+    | "idle"
+    | "away"
+    | "break"
+    | "meeting"
+    | "offline"
+    | "ended";
   start: number;
   end: number;
 };
+
+function timelineKind(
+  status: MyDayState["presenceEvents"][number]["status"],
+): TimelineSegment["kind"] {
+  if (status === "on_break") return "break";
+  if (status === "in_meeting") return "meeting";
+  if (status === "workday_ended") return "ended";
+  return status;
+}
+
+function timelineLabel(kind: TimelineSegment["kind"]) {
+  switch (kind) {
+    case "idle":
+      return "Idle";
+    case "away":
+      return "Away";
+    case "break":
+      return "Break";
+    case "meeting":
+      return "Meeting";
+    case "offline":
+      return "Offline";
+    case "ended":
+      return "Signed off";
+    default:
+      return "Active";
+  }
+}
+
+function timelineColor(kind: TimelineSegment["kind"]) {
+  switch (kind) {
+    case "idle":
+      return "var(--idle)";
+    case "away":
+      return "var(--away)";
+    case "break":
+      return "var(--break)";
+    case "meeting":
+      return "var(--meeting)";
+    case "offline":
+      return "var(--offline)";
+    case "ended":
+      return "var(--ended)";
+    default:
+      return "var(--active)";
+  }
+}
 
 function formatTime(iso: string | null, timeZone: string) {
   if (!iso) return "—";
@@ -61,6 +115,23 @@ function formatDate(date: string, timeZone: string) {
 
 function buildTimeline(state: MyDayState): TimelineSegment[] {
   const now = new Date(state.snapshotAt).getTime();
+
+  if (state.presenceEvents.length > 0) {
+    return state.presenceEvents
+      .map((event) => ({
+        kind: timelineKind(event.status),
+        start: new Date(event.startedAt).getTime(),
+        end: event.endedAt ? new Date(event.endedAt).getTime() : now,
+      }))
+      .filter(
+        (segment) =>
+          Number.isFinite(segment.start) &&
+          Number.isFinite(segment.end) &&
+          segment.end > segment.start,
+      )
+      .sort((a, b) => a.start - b.start);
+  }
+
   const sessions: Array<{ start: number; end: number }> = [];
   let sessionStart: number | null = null;
 
@@ -111,28 +182,40 @@ function buildTimeline(state: MyDayState): TimelineSegment[] {
     let cursor = session.start;
 
     for (const interval of intervals) {
-      const start = Math.max(session.start, interval.start);
-      const end = Math.min(session.end, interval.end);
+      const intervalStart = Math.max(session.start, interval.start);
+      const intervalEnd = Math.min(session.end, interval.end);
 
-      if (end <= session.start || start >= session.end || end <= start) {
+      if (
+        intervalEnd <= session.start ||
+        intervalStart >= session.end ||
+        intervalEnd <= intervalStart
+      ) {
         continue;
       }
 
-      if (start > cursor) {
-        result.push({ kind: "active", start: cursor, end: start });
+      if (intervalStart > cursor) {
+        result.push({
+          kind: "active",
+          start: cursor,
+          end: intervalStart,
+        });
       }
 
       result.push({
         kind: interval.kind,
-        start,
-        end,
+        start: intervalStart,
+        end: intervalEnd,
       });
 
-      cursor = Math.max(cursor, end);
+      cursor = Math.max(cursor, intervalEnd);
     }
 
     if (cursor < session.end) {
-      result.push({ kind: "active", start: cursor, end: session.end });
+      result.push({
+        kind: "active",
+        start: cursor,
+        end: session.end,
+      });
     }
   }
 
@@ -413,17 +496,12 @@ function Timeline({ state }: { state: MyDayState }) {
                 0.35,
                 ((segment.end - segment.start) / span) * 100,
               )}%`,
-              background:
-                segment.kind === "break"
-                  ? "var(--break)"
-                  : segment.kind === "meeting"
-                    ? "var(--meeting)"
-                    : "var(--active)",
+              background: timelineColor(segment.kind),
             }}
-            title={`${segment.kind} · ${clock(segment.start, true)}–${clock(
-              segment.end,
+            title={`${timelineLabel(segment.kind)} · ${clock(
+              segment.start,
               true,
-            )}`}
+            )}–${clock(segment.end, true)}`}
           />
         ))}
 
@@ -447,18 +525,20 @@ function Timeline({ state }: { state: MyDayState }) {
       </div>
 
       <div className="legend">
-        <span>
-          <i className="dot" style={{ background: "var(--active)" }} />
-          Active
-        </span>
-        <span>
-          <i className="dot" style={{ background: "var(--break)" }} />
-          Break
-        </span>
-        <span>
-          <i className="dot" style={{ background: "var(--meeting)" }} />
-          Meeting
-        </span>
+        {[
+          ["Active", "var(--active)"],
+          ["Idle", "var(--idle)"],
+          ["Away", "var(--away)"],
+          ["Break", "var(--break)"],
+          ["Meeting", "var(--meeting)"],
+          ["Offline", "var(--offline)"],
+          ["Signed off", "var(--ended)"],
+        ].map(([label, color]) => (
+          <span key={label}>
+            <i className="dot" style={{ background: color }} />
+            {label}
+          </span>
+        ))}
       </div>
     </>
   );
