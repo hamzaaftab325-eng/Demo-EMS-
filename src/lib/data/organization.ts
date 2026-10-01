@@ -97,9 +97,10 @@ export async function getEmployeeDirectory(
       .is("effective_to", null),
     supabase
       .from("schedule_assignments")
-      .select("employee_id, schedule_id")
+      .select("employee_id, schedule_id, effective_from, effective_to, created_at")
       .in("employee_id", ids)
-      .is("effective_to", null),
+      .order("effective_from", { ascending: false })
+      .order("created_at", { ascending: false }),
     supabase.from("work_schedules").select("id, name"),
   ]);
 
@@ -119,12 +120,27 @@ export async function getEmployeeDirectory(
   const managerMap = new Map(
     (reportingLines ?? []).map((row) => [row.employee_id, row.manager_id]),
   );
-  const scheduleAssignmentMap = new Map(
-    (scheduleAssignments ?? []).map((row) => [
-      row.employee_id,
-      row.schedule_id,
-    ]),
-  );
+  const dateParts = new Intl.DateTimeFormat("en-US", {
+    timeZone: profile.timezone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(new Date());
+  const dateValue = (type: string) =>
+    dateParts.find((part) => part.type === type)?.value ?? "";
+  const today =
+    dateValue("year") + "-" + dateValue("month") + "-" + dateValue("day");
+  const scheduleAssignmentMap = new Map<string, string>();
+
+  for (const row of scheduleAssignments ?? []) {
+    const activeOnDate =
+      row.effective_from <= today &&
+      (!row.effective_to || row.effective_to >= today);
+
+    if (activeOnDate && !scheduleAssignmentMap.has(row.employee_id)) {
+      scheduleAssignmentMap.set(row.employee_id, row.schedule_id);
+    }
+  }
   const scheduleMap = new Map(
     (schedules ?? []).map((row) => [row.id, row.name]),
   );

@@ -4,7 +4,7 @@ Production Employee Management System for eMarketSelect.
 
 ## Current status
 
-**Phase 4 — My Day & Scrum: COMPLETE**
+**Phase 6 — Requests & Approvals: COMPLETE**
 
 Phase 1 established the production Next.js foundation. Phase 2 added real Supabase authentication and protected role-based access. Phase 3 now connects the organization layer to live Supabase data.
 
@@ -123,11 +123,27 @@ This avoids building a second copy of scrum data: Phase 7 will read the same Pha
 - Attendance corrections are Super Admin only, require a reason, and write an audit record.
 - Presence and attendance are RLS-scoped to self, reporting-chain managers/directors, and Super Admin.
 
+## Phase 6 — Requests & Approvals
+
+Phase 6 is live:
+
+- Leave, shift-change and hour-change request forms
+- Manager approval followed by optional final Super Admin approval
+- No self-approval
+- Pending request cancellation before final approval
+- Working-day leave calculation excluding weekends and configured holidays
+- Idempotent leave-ledger deduction on final approval
+- Temporary and permanent schedule-history updates for approved schedule changes
+- Request notifications and audit evidence for sensitive transitions
+- Dashboard count for approvals waiting on the current manager/admin
+- Approved leave reflected in Attendance and Live View when the employee has not signed in
+- Direct request-table mutation removed from normal authenticated clients; state transitions use controlled RPC workflows
+
 ## Next phase
 
-**Phase 6 — Requests & Approvals**
+**Phase 7 — Management Dashboard & Reports**
 
-Leave, shift-change and hour-change requests, manager/final approval, leave ledger impact, schedule changes, notifications, and audited decisions.
+Team scrum board, blockers, manager-added work, employee drill-down, richer management reporting and CSV exports.
 
 
 ## Phase 1–5 final audit
