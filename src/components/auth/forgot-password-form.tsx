@@ -67,7 +67,7 @@ export function ForgotPasswordForm() {
           ) : (
             <form onSubmit={submit}>
               <label className="f">
-                <span>Employee email</span>
+                <span>Current EMS login email</span>
                 <input
                   type="email"
                   autoComplete="email"
