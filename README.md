@@ -53,7 +53,11 @@ Only the Supabase URL and publishable key belong in browser-visible environment 
 ## Authentication and authorization
 
 - Public sign-up is intentionally disabled.
-- Users must exist in Supabase Auth and be linked to an active `public.profiles` row.
+- Super Admin creates the employee profile first and can send a secure invitation from EMS.
+- The invite creates/links the Supabase Auth identity by employee email.
+- The employee opens the one-time link, chooses their own password, and EMS records account activation.
+- Existing employees can use Forgot Password to request a new setup link.
+- Users must be linked to an active `public.profiles` row before application access is granted.
 - Application roles come from `public.profiles.role`, never user-editable Auth metadata.
 - RLS is the final database authorization layer.
 - Super Admin can manage employees.
@@ -151,3 +155,21 @@ The My Day timeline is adaptive to the actual work session. A late-night sign-in
 An open workday now remains the employee's active My Day after local midnight until it is signed off or automatically signed off for inactivity. Heartbeat, breaks, meetings, obstacles, task additions and sign-off all resolve the same open workday rather than silently creating a second day's session. A partial unique index prevents more than one open workday per employee.
 
 The My Day timeline uses the employee's target work duration as its visible window. For example, an 8:08 AM sign-in on an 8-hour target displays the work window through roughly 5 PM; a 10:50 PM sign-in displays 10 PM, 11 PM, 12 AM and the overnight hours instead of collapsing to a two-hour strip.
+
+
+## Employee account onboarding
+
+Employee onboarding is now part of the Super Admin employee workflow:
+
+1. Super Admin creates the employee with role, department, manager and schedule.
+2. EMS persists the employee profile before any Auth identity is created.
+3. When **Send login invitation** is enabled, the JWT-protected `employee-account` Edge Function verifies the caller is Super Admin.
+4. Supabase Auth sends the employee a one-time invitation email.
+5. The Auth-user trigger links that identity to the existing employee profile by email; no duplicate employee profile is created.
+6. The employee opens the link at `/set-password`, chooses a password, and the Edge Function records `auth_activated_at`.
+7. Unactivated accounts are redirected to password setup instead of entering the EMS application.
+8. If setup is incomplete, Super Admin can **Resend setup link**. Existing users also have **Forgot password** on the login page.
+
+The Supabase service-role credential is used only inside the Supabase Edge Function and is never exposed to Vercel browser code or any `NEXT_PUBLIC_*` variable.
+
+Demo addresses under `@example.test` can link correctly but cannot receive real email. Use a deliverable company mailbox when testing invitation delivery.

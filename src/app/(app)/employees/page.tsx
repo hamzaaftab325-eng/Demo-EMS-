@@ -148,8 +148,20 @@ export default async function EmployeesPage({
                   )}
                 </td>
                 <td>
-                  <span className={employee.authLinked ? "access-ok" : "access-pending"}>
-                    {employee.authLinked ? "Login ready" : "Login not created"}
+                  <span
+                    className={
+                      employee.authActivatedAt
+                        ? "access-ok"
+                        : employee.authLinked
+                          ? "access-invited"
+                          : "access-pending"
+                    }
+                  >
+                    {employee.authActivatedAt
+                      ? "Login active"
+                      : employee.authLinked
+                        ? "Activation pending"
+                        : "No login yet"}
                   </span>
                 </td>
               </tr>

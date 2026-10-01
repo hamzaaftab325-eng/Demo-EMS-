@@ -26,6 +26,60 @@ function fail(path: string, message: string): never {
   redirect(`${path}?${params.toString()}`);
 }
 
+const ACCOUNT_SETUP_URL =
+  process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") ??
+  "https://demo-ems-ten.vercel.app";
+
+type InviteStatus =
+  | "sent"
+  | "resent"
+  | "already_active"
+  | "failed";
+
+async function sendAccountSetup(employeeId: string): Promise<InviteStatus> {
+  const supabase = await createClient();
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+
+  if (!session?.access_token) {
+    return "failed";
+  }
+
+  const { data, error } = await supabase.functions.invoke(
+    "employee-account",
+    {
+      body: {
+        action: "invite",
+        employee_id: employeeId,
+        redirect_to: `${ACCOUNT_SETUP_URL}/set-password`,
+      },
+      headers: {
+        Authorization: `Bearer ${session.access_token}`,
+      },
+    },
+  );
+
+  if (error) {
+    return "failed";
+  }
+
+  const status =
+    data && typeof data === "object" && "status" in data
+      ? String(data.status)
+      : "";
+
+  if (
+    status === "sent" ||
+    status === "resent" ||
+    status === "already_active"
+  ) {
+    return status;
+  }
+
+  return "failed";
+}
+
 export async function createEmployee(formData: FormData) {
   const current = await requireRole(ADMIN_ROLES);
   const supabase = await createClient();
@@ -79,9 +133,19 @@ export async function createEmployee(formData: FormData) {
     );
   }
 
+  const shouldInvite = formData.get("send_invite") === "on";
+  const inviteStatus = shouldInvite
+    ? await sendAccountSetup(employeeId)
+    : null;
+
   revalidatePath("/employees");
+  revalidatePath(`/employees/${employeeId}`);
   revalidatePath("/dashboard");
-  redirect(`/employees/${employeeId}?created=1`);
+
+  const params = new URLSearchParams({ created: "1" });
+  if (inviteStatus) params.set("invite", inviteStatus);
+
+  redirect(`/employees/${employeeId}?${params.toString()}`);
 }
 
 export async function updateEmployee(formData: FormData) {
@@ -140,4 +204,21 @@ export async function updateEmployee(formData: FormData) {
   revalidatePath(`/employees/${employeeId}`);
   revalidatePath("/dashboard");
   redirect(`/employees/${employeeId}?updated=1`);
+}
+
+
+export async function sendEmployeeInvite(formData: FormData) {
+  await requireRole(ADMIN_ROLES);
+
+  const employeeId = textValue(formData, "employee_id");
+  if (!employeeId) {
+    fail("/employees", "Employee ID is missing.");
+  }
+
+  const inviteStatus = await sendAccountSetup(employeeId);
+
+  revalidatePath("/employees");
+  revalidatePath(`/employees/${employeeId}`);
+
+  redirect(`/employees/${employeeId}?invite=${inviteStatus}`);
 }

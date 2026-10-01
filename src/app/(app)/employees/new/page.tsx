@@ -23,7 +23,7 @@ export default async function NewEmployeePage({
     <>
       <PageHead
         title="Add employee"
-        subtitle="Create one employee profile, reporting line and current schedule assignment."
+        subtitle="Create the employee, reporting line, schedule and secure login invitation in one flow."
       />
 
       {error ? <div className="form-error">{error}</div> : null}
@@ -37,9 +37,9 @@ export default async function NewEmployeePage({
       />
 
       <p className="preview-note">
-        In demo mode, new profiles use the demo data partition. Authentication
-        access is provisioned separately; no service-role key is exposed in the
-        browser.
+        The EMS profile is created first. If invitation is enabled, Supabase
+        emails the employee a one-time account setup link. The employee chooses
+        their own password; public sign-up remains disabled.
       </p>
     </>
   );

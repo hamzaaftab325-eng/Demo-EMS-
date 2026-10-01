@@ -3,6 +3,11 @@ import { NextResponse, type NextRequest } from "next/server";
 import type { Database } from "@/types/database";
 
 const LOGIN_PATH = "/login";
+const PUBLIC_AUTH_PATHS = new Set([
+  "/login",
+  "/forgot-password",
+  "/set-password",
+]);
 
 function redirectToLogin(request: NextRequest, code?: string) {
   const url = request.nextUrl.clone();
@@ -25,10 +30,11 @@ function redirectToLogin(request: NextRequest, code?: string) {
 export async function updateSession(request: NextRequest) {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const publishableKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
-  const isLoginRoute = request.nextUrl.pathname === LOGIN_PATH;
+  const pathname = request.nextUrl.pathname;
+  const isPublicAuthRoute = PUBLIC_AUTH_PATHS.has(pathname);
 
   if (!url || !publishableKey) {
-    return isLoginRoute
+    return isPublicAuthRoute
       ? NextResponse.next({ request })
       : redirectToLogin(request, "configuration");
   }
@@ -58,17 +64,17 @@ export async function updateSession(request: NextRequest) {
     },
   });
 
-  // Supabase recommends calling getClaims immediately after client creation.
-  // It validates the JWT before protected Server Components are rendered.
   const { data: claimsData } = await supabase.auth.getClaims();
-
   const isAuthenticated = Boolean(claimsData?.claims?.sub);
 
-  if (!isAuthenticated && !isLoginRoute) {
+  if (!isAuthenticated && !isPublicAuthRoute) {
     return redirectToLogin(request);
   }
 
-  if (isAuthenticated && isLoginRoute) {
+  if (
+    isAuthenticated &&
+    (pathname === "/login" || pathname === "/forgot-password")
+  ) {
     const home = request.nextUrl.clone();
     home.pathname = "/";
     home.search = "";

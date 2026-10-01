@@ -21,6 +21,8 @@ export type EmployeeRow = {
   hireDate: string | null;
   isActive: boolean;
   authLinked: boolean;
+  authInvitedAt: string | null;
+  authActivatedAt: string | null;
   managerId: string | null;
   managerName: string | null;
   scheduleId: string | null;
@@ -65,7 +67,7 @@ export async function getEmployeeDirectory(
   const { data: profiles, error: profilesError } = await supabase
     .from("profiles")
     .select(
-      "id, employee_code, email, full_name, job_title, department_id, employment_type, role, employment_status, timezone, hire_date, is_active, is_test_account, auth_user_id",
+      "id, employee_code, email, full_name, job_title, department_id, employment_type, role, employment_status, timezone, hire_date, is_active, is_test_account, auth_user_id, auth_invited_at, auth_activated_at",
     )
     .order("employee_code");
 
@@ -147,6 +149,8 @@ export async function getEmployeeDirectory(
       hireDate: row.hire_date,
       isActive: row.is_active,
       authLinked: Boolean(row.auth_user_id),
+      authInvitedAt: row.auth_invited_at,
+      authActivatedAt: row.auth_activated_at,
       managerId,
       managerName: manager?.full_name ?? null,
       scheduleId,

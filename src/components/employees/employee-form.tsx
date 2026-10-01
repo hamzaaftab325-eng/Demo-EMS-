@@ -57,7 +57,7 @@ export function EmployeeForm({
               type="email"
               required
               defaultValue={employee?.email ?? ""}
-              placeholder="employee5@example.test"
+              placeholder="name@emarketselect.com"
             />
           </label>
 
@@ -189,6 +189,23 @@ export function EmployeeForm({
             </label>
           ) : null}
         </div>
+
+        {!employee ? (
+          <label className="employee-invite-option">
+            <input
+              type="checkbox"
+              name="send_invite"
+              defaultChecked
+            />
+            <span>
+              <b>Send login invitation</b>
+              <small>
+                The employee receives a secure setup link and chooses their own
+                password. No password is shown to the administrator.
+              </small>
+            </span>
+          </label>
+        ) : null}
 
         {employee ? (
           <label className="f">

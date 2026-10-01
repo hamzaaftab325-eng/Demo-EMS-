@@ -1,7 +1,10 @@
 import { notFound } from "next/navigation";
 import { PageHead, StatusPill } from "@/components/shared/prototype";
 import { EmployeeForm } from "@/components/employees/employee-form";
-import { updateEmployee } from "@/app/(app)/employees/actions";
+import {
+  sendEmployeeInvite,
+  updateEmployee,
+} from "@/app/(app)/employees/actions";
 import { requireRole } from "@/lib/auth/current-profile";
 import { TEAM_ROLES, roleLabel } from "@/lib/navigation";
 import {
@@ -32,6 +35,7 @@ export default async function EmployeeDetailPage({
 
   const canEdit = current.role === "super_admin";
   const error = single(query.error);
+  const invite = single(query.invite);
 
   return (
     <>
@@ -54,6 +58,26 @@ export default async function EmployeeDetailPage({
       ) : null}
       {single(query.updated) ? (
         <div className="form-success">Employee updated successfully.</div>
+      ) : null}
+      {invite === "sent" ? (
+        <div className="form-success">
+          Login invitation sent. The employee can now open the email and choose
+          their password.
+        </div>
+      ) : null}
+      {invite === "resent" ? (
+        <div className="form-success">
+          A new password setup link was sent to the employee.
+        </div>
+      ) : null}
+      {invite === "already_active" ? (
+        <div className="form-success">This employee login is already active.</div>
+      ) : null}
+      {invite === "failed" ? (
+        <div className="form-error">
+          The employee profile was saved, but the setup email could not be
+          sent. You can retry from System access.
+        </div>
       ) : null}
       {error ? <div className="form-error">{error}</div> : null}
 
@@ -118,14 +142,64 @@ export default async function EmployeeDetailPage({
               <h2>System access</h2>
             </div>
             <div className="bd">
-              <p style={{ margin: 0, fontWeight: 600 }}>
-                {employee.authLinked
-                  ? "Login ready"
-                  : "Login not created yet"}
+              <div className="employee-access-head">
+                <span
+                  className={
+                    employee.authActivatedAt
+                      ? "access-ok"
+                      : employee.authLinked
+                        ? "access-invited"
+                        : "access-pending"
+                  }
+                >
+                  {employee.authActivatedAt
+                    ? "Login active"
+                    : employee.authLinked
+                      ? "Activation pending"
+                      : "No login yet"}
+                </span>
+              </div>
+
+              <p className="mut employee-access-copy">
+                {employee.authActivatedAt
+                  ? "The employee has completed account setup and can sign in with their own password."
+                  : employee.authLinked
+                    ? "The Auth account exists, but password setup has not been completed yet."
+                    : "No Auth identity is linked yet. Send an invitation to create one securely."}
               </p>
-              <p className="mut" style={{ margin: "6px 0 0", fontSize: 12.5 }}>
-                Employee records remain separate from authentication identities. Creating a demo Auth user with the same email links it to this existing profile automatically.
-              </p>
+
+              {employee.authInvitedAt ? (
+                <p className="mut employee-access-time">
+                  Last setup email: {new Date(employee.authInvitedAt).toLocaleString("en-US", {
+                    timeZone: current.timezone,
+                    dateStyle: "medium",
+                    timeStyle: "short",
+                  })}
+                </p>
+              ) : null}
+
+              {employee.email.endsWith("@example.test") &&
+              !employee.authActivatedAt ? (
+                <div className="employee-access-warning">
+                  <b>Demo email</b>
+                  <span>
+                    @example.test cannot receive a real email. Change this
+                    profile to a deliverable company mailbox before testing the
+                    invitation email.
+                  </span>
+                </div>
+              ) : null}
+
+              {canEdit && !employee.authActivatedAt ? (
+                <form action={sendEmployeeInvite} className="employee-access-action">
+                  <input type="hidden" name="employee_id" value={employee.id} />
+                  <button className="btn brand" type="submit">
+                    {employee.authLinked
+                      ? "Resend setup link"
+                      : "Send login invitation"}
+                  </button>
+                </form>
+              ) : null}
             </div>
           </div>
         </div>

@@ -311,3 +311,22 @@ label.f input,label.f select{width:100%}
   .presence-stats-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
   .myday-hours{font-size:10px}
 }
+
+/* Employee account invitation and activation */
+.login-secondary-action{margin-top:14px;text-align:center;font-size:12.5px}
+.login-secondary-action a{color:var(--cyan);text-decoration:none}
+.login-secondary-action a:hover{text-decoration:underline}
+.password-requirements{font-size:12px;margin:-3px 0 12px}
+.employee-invite-option{display:flex;align-items:flex-start;gap:10px;margin:10px 0 14px;padding:12px;border:1px solid var(--border);border-radius:8px;background:color-mix(in srgb,var(--cyan) 4%,var(--surface));cursor:pointer}
+.employee-invite-option input{margin-top:3px;accent-color:var(--cyan)}
+.employee-invite-option span{display:block}
+.employee-invite-option b{display:block;font-size:13px}
+.employee-invite-option small{display:block;margin-top:2px;color:var(--mfg);font-size:12px;font-weight:400}
+.access-invited{display:inline-flex;align-items:center;border-radius:999px;padding:2px 8px;font-size:12px;font-weight:500;background:color-mix(in srgb,var(--idle) 16%,transparent);color:color-mix(in srgb,var(--idle) 72%,var(--fg))}
+.employee-access-head{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.employee-access-copy{margin:8px 0 0;font-size:12.5px}
+.employee-access-time{margin:8px 0 0;font-size:11.5px}
+.employee-access-action{margin-top:14px}
+.employee-access-warning{display:flex;flex-direction:column;gap:2px;margin-top:12px;padding:9px 10px;border:1px solid color-mix(in srgb,var(--idle) 35%,var(--border));background:color-mix(in srgb,var(--idle) 8%,var(--surface));border-radius:7px;font-size:12px}
+.employee-access-warning b{font-weight:600}
+.employee-access-warning span{color:var(--mfg)}

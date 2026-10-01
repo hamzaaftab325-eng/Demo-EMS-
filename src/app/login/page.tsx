@@ -1,4 +1,5 @@
 import Image from "next/image";
+import Link from "next/link";
 import { LockKeyhole } from "lucide-react";
 import { login } from "@/app/auth/actions";
 
@@ -55,8 +56,8 @@ export default async function LoginPage({
 
           <h2>Sign in</h2>
           <p className="mut login-help">
-            Development uses the temporary Super Admin account. Public sign-up
-            is disabled.
+            Sign in with your employee account. New employees activate access
+            from the invitation sent by a Super Admin. Public sign-up is disabled.
           </p>
 
           {message ? (
@@ -93,6 +94,10 @@ export default async function LoginPage({
               Sign in to EMS
             </button>
           </form>
+
+          <div className="login-secondary-action">
+            <Link href="/forgot-password">Forgot your password?</Link>
+          </div>
 
           <div className="login-note">
             <b>Development account</b>

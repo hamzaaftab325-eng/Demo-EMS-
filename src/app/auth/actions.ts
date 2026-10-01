@@ -49,7 +49,7 @@ export async function login(formData: FormData) {
   const { data: profile, error: profileError } = await supabase
     .from("profiles")
     .select(
-      "id, role, is_active, employment_status, auth_user_id, is_test_account",
+      "id, role, is_active, employment_status, auth_user_id, is_test_account, auth_activated_at",
     )
     .eq("auth_user_id", authData.user.id)
     .maybeSingle();
@@ -66,6 +66,10 @@ export async function login(formData: FormData) {
       profile && !profile.is_active ? "inactive_account" : "not_authorized",
       requestedNext,
     );
+  }
+
+  if (!profile.auth_activated_at) {
+    redirect("/set-password");
   }
 
   redirect(requestedNext ?? homeForRole(profile.role));

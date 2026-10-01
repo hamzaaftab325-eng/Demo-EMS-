@@ -14,6 +14,7 @@ export type CurrentProfile = {
   is_active: boolean;
   is_test_account: boolean;
   timezone: string;
+  auth_activated_at: string | null;
 };
 
 type AccessContext = {
@@ -39,7 +40,7 @@ export const getCurrentAccess = cache(async (): Promise<AccessContext> => {
   const { data, error } = await supabase
     .from("profiles")
     .select(
-      "id, employee_code, email, full_name, job_title, role, employment_status, is_active, is_test_account, timezone",
+      "id, employee_code, email, full_name, job_title, role, employment_status, is_active, is_test_account, timezone, auth_activated_at",
     )
     .eq("auth_user_id", userId)
     .maybeSingle();
@@ -73,6 +74,10 @@ export async function requireCurrentProfile() {
     access.profile.employment_status === "deactivated"
   ) {
     redirect("/access-denied?reason=inactive");
+  }
+
+  if (!access.profile.auth_activated_at) {
+    redirect("/set-password");
   }
 
   return access.profile;

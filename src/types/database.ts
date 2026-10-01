@@ -744,6 +744,8 @@ export type Database = {
       }
       profiles: {
         Row: {
+          auth_activated_at: string | null
+          auth_invited_at: string | null
           auth_user_id: string | null
           avatar_url: string | null
           created_at: string
@@ -767,6 +769,8 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          auth_activated_at?: string | null
+          auth_invited_at?: string | null
           auth_user_id?: string | null
           avatar_url?: string | null
           created_at?: string
@@ -790,6 +794,8 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          auth_activated_at?: string | null
+          auth_invited_at?: string | null
           auth_user_id?: string | null
           avatar_url?: string | null
           created_at?: string
