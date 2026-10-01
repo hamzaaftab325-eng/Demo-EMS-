@@ -56,11 +56,12 @@ export function SetPasswordForm({
           return;
         }
 
-        window.history.replaceState(
-          {},
-          document.title,
-          inviteMode ? "/signup" : "/set-password",
-        );
+        if (inviteMode) {
+          window.location.replace("/signup");
+          return;
+        }
+
+        window.history.replaceState({}, document.title, "/set-password");
       } else if (code) {
         const { error } = await supabase.auth.exchangeCodeForSession(code);
 
@@ -72,11 +73,12 @@ export function SetPasswordForm({
           return;
         }
 
-        window.history.replaceState(
-          {},
-          document.title,
-          inviteMode ? "/signup" : "/set-password",
-        );
+        if (inviteMode) {
+          window.location.replace("/signup");
+          return;
+        }
+
+        window.history.replaceState({}, document.title, "/set-password");
       }
 
       const {
