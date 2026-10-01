@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { PageHead, StatusPill } from "@/components/shared/prototype";
 import { EmployeeForm } from "@/components/employees/employee-form";
 import {
+  assignEmployeeWorkEmail,
   sendEmployeeInvite,
   updateEmployee,
 } from "@/app/(app)/employees/actions";
@@ -40,6 +41,7 @@ export default async function EmployeeDetailPage({
   const canEdit = current.role === "super_admin";
   const error = single(query.error);
   const invite = single(query.invite);
+  const access = single(query.access);
 
   return (
     <>
@@ -65,45 +67,54 @@ export default async function EmployeeDetailPage({
       ) : null}
       {invite === "sent" ? (
         <div className="form-success">
-          Login invitation sent. The employee can now open the email and choose
-          their password.
+          Account setup invitation sent. The employee can open the email and
+          choose their password.
         </div>
       ) : null}
       {invite === "resent" ? (
         <div className="form-success">
-          A new password setup link was sent to the employee.
+          A new account setup invitation was sent. The previous incomplete
+          setup link is no longer the active onboarding link.
         </div>
       ) : null}
       {invite === "already_active" ? (
         <div className="form-success">This employee login is already active.</div>
       ) : null}
+      {access === "work_email_assigned" ? (
+        <div className="form-success">
+          Work login email assigned successfully. The employee keeps the same
+          password and must use the new work email on their next sign-in.
+        </div>
+      ) : null}
+      {access === "work_email_already_assigned" ? (
+        <div className="form-success">
+          That work login email is already assigned to this employee.
+        </div>
+      ) : null}
       {invite === "demo_address" ? (
         <div className="form-error">
           The employee profile was saved, but @example.test addresses cannot
-          receive email. Use a deliverable company mailbox to test activation.
+          receive email. Use a deliverable setup mailbox for invitation testing.
         </div>
       ) : null}
       {invite === "demo_email_not_authorized" ? (
         <div className="form-error">
-          The employee profile was saved, but Supabase&apos;s demo email sender
-          only delivers to addresses that are members of this Supabase
-          organization. Add the test mailbox to the Supabase team or configure
-          custom SMTP.
+          The employee profile was saved, but the configured email provider
+          rejected this recipient. Check the SMTP sender or use a permitted test
+          mailbox.
         </div>
       ) : null}
       {invite === "email_rate_limited" ? (
         <div className="form-error">
-          The employee profile was saved, but Supabase&apos;s built-in email
-          sender has reached its project email limit. No login account was
-          created. Retry from System access after the email quota refreshes, or
-          configure custom SMTP for reliable employee onboarding.
+          The employee profile was saved, but the email provider rate limit was
+          reached. Retry from System access after the provider allows another
+          message.
         </div>
       ) : null}
       {invite === "failed" ? (
         <div className="form-error">
-          The employee profile was saved, but the setup email provider rejected
-          the invitation. No login account was created. Retry from System access
-          or review the Supabase Auth email configuration.
+          The employee profile was saved, but the setup invitation could not be
+          sent. Retry from System access or review the Auth email configuration.
         </div>
       ) : null}
       {error ? <div className="form-error">{error}</div> : null}
@@ -118,12 +129,13 @@ export default async function EmployeeDetailPage({
               schedules={options.schedules}
               managers={options.managers}
               submitLabel="Save employee"
+              isTestEnvironment={current.is_test_account}
             />
           ) : (
             <div className="card">
               <div className="bd">
                 <dl className="kv">
-                  <dt>Email</dt>
+                  <dt>Login email</dt>
                   <dd>{employee.email}</dd>
                   <dt>Role</dt>
                   <dd>{roleLabel(employee.role)}</dd>
@@ -180,7 +192,9 @@ export default async function EmployeeDetailPage({
                   }
                 >
                   {employee.authActivatedAt
-                    ? "Login active"
+                    ? employee.workEmail || !current.is_test_account
+                      ? "Login active"
+                      : "Setup complete · work email pending"
                     : employee.authLinked
                       ? "Activation pending"
                       : "No login yet"}
@@ -189,15 +203,31 @@ export default async function EmployeeDetailPage({
 
               <p className="mut employee-access-copy">
                 {employee.authActivatedAt
-                  ? "The employee has completed account setup and can sign in with their own password."
+                  ? employee.workEmail || !current.is_test_account
+                    ? "The employee can sign in with the current work/login email and the password they created."
+                    : "The employee created their password. Assign the final work login email below; the password will remain unchanged."
                   : employee.authLinked
                     ? "The Auth account exists, but password setup has not been completed yet."
-                    : "No Auth identity is linked yet. Send an invitation to create one securely."}
+                    : "No Auth identity is linked yet. Send an account setup invitation to begin."}
               </p>
+
+              <dl className="kv employee-kv">
+                <dt>Current login</dt>
+                <dd>{employee.email}</dd>
+                {canEdit ? (
+                  <>
+                    <dt>Setup email</dt>
+                    <dd>{employee.personalEmail ?? employee.email}</dd>
+                    <dt>Work login</dt>
+                    <dd>{employee.workEmail ?? "Not assigned yet"}</dd>
+                  </>
+                ) : null}
+              </dl>
 
               {employee.authInvitedAt ? (
                 <p className="mut employee-access-time">
-                  Last setup email: {new Date(employee.authInvitedAt).toLocaleString("en-US", {
+                  Last setup invitation:{" "}
+                  {new Date(employee.authInvitedAt).toLocaleString("en-US", {
                     timeZone: current.timezone,
                     dateStyle: "medium",
                     timeStyle: "short",
@@ -208,11 +238,10 @@ export default async function EmployeeDetailPage({
               {employee.email.endsWith("@example.test") &&
               !employee.authActivatedAt ? (
                 <div className="employee-access-warning">
-                  <b>Demo email</b>
+                  <b>Non-deliverable demo address</b>
                   <span>
-                    @example.test cannot receive a real email. Change this
-                    profile to a deliverable company mailbox before testing the
-                    invitation email.
+                    @example.test cannot receive a real invitation. Use a
+                    deliverable setup mailbox for email testing.
                   </span>
                 </div>
               ) : null}
@@ -222,8 +251,36 @@ export default async function EmployeeDetailPage({
                   <input type="hidden" name="employee_id" value={employee.id} />
                   <button className="btn brand" type="submit">
                     {employee.authLinked
-                      ? "Resend setup link"
-                      : "Send login invitation"}
+                      ? "Resend account setup"
+                      : "Send account setup invitation"}
+                  </button>
+                </form>
+              ) : null}
+
+              {canEdit &&
+              employee.authActivatedAt &&
+              employee.employmentStatus !== "deactivated" ? (
+                <form action={assignEmployeeWorkEmail} className="employee-access-action">
+                  <input type="hidden" name="employee_id" value={employee.id} />
+                  <label className="f">
+                    <span>Work login email</span>
+                    <input
+                      type="email"
+                      name="work_email"
+                      required
+                      defaultValue={employee.workEmail ?? ""}
+                      placeholder="name@emarketselect.com"
+                    />
+                    <small className="mut">
+                      {current.is_test_account
+                        ? "Demo accounts may use any valid test work email. The employee keeps the password already created."
+                        : "Production accounts must use @emarketselect.com. The employee keeps the password already created."}
+                    </small>
+                  </label>
+                  <button className="btn brand" type="submit">
+                    {employee.workEmail
+                      ? "Change work login email"
+                      : "Assign work login email"}
                   </button>
                 </form>
               ) : null}
