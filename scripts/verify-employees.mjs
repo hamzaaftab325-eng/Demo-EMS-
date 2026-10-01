@@ -103,7 +103,7 @@ requireText(
 
 const login = read("src/app/login/page.tsx");
 requireText(login, "Work / login email", "Login identity wording");
-requireText(login, "same password", "Login work-email transition wording");
+requireText(login, "After a work email is assigned", "Login work-email transition wording");
 
 const migration = read(
   "supabase/migrations/20261001142729_phase3_employee_access_lifecycle.sql",
