@@ -99,7 +99,6 @@ requireText(correctionScope, "Employee not found.", "RLS-scoped correction targe
 const helperLockdown = read("supabase/migrations/20261001170649_phase5_restrict_private_helper_execution.sql");
 requireText(helperLockdown, "revoke execute on function private.same_profile_environment", "Private helper lockdown");
 
-console.log("Phase 5 Attendance & Live Presence verification passed.");
 
 const liveTimeline = read("src/components/attendance/timeline-strip.tsx");
 requireText(liveTimeline, "row.presenceEvents", "Live timeline presence history");
@@ -115,3 +114,5 @@ const myDayTimeline = read("src/components/my-day/my-day-client.tsx");
 requireText(myDayTimeline, "state.presenceEvents.length > 0", "My Day uses presence history");
 requireText(myDayTimeline, '["Idle", "var(--idle)"]', "My Day Idle timeline legend");
 requireText(myDayTimeline, '["Away", "var(--away)"]', "My Day Away timeline legend");
+
+console.log("Phase 5 Attendance & Live Presence verification passed.");
