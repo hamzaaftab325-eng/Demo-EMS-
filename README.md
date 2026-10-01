@@ -299,3 +299,19 @@ Phase 5 — Attendance & Live Presence is protected by `npm run attendance:check
 Live rollback acceptance tests cover Active/Idle/Away, break and meeting math, fixed/flexible/flexible-core schedules, automatic sign-off, manager subtree isolation, attendance correction authorization, stale presence rollover and open overnight workdays.
 
 See `docs/PHASE_5_ATTENDANCE_QA.md` for the acceptance matrix.
+
+
+## Phase 6 requests gate
+
+Phase 6 — Requests & Approvals is protected by `npm run requests:check` plus lint,
+TypeScript and the production build in GitHub Actions. The gate covers leave,
+shift/hour changes, approval stages, cancellation/rejection, balance enforcement,
+approved-leave attendance synchronization, schedule application, notifications,
+Super Admin reassignment, least-privilege RPC/table boundaries and the cross-year
+leave-ledger fix.
+
+Live rollback acceptance also verifies manager subtree isolation, protected direct
+writes, notification ownership, duplicate-decision safety, temporary/permanent
+schedule application, approved-leave sign-in blocking and Dec → Jan leave approval.
+
+See `docs/PHASE_6_REQUESTS_QA.md` for the acceptance matrix.

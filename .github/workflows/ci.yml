@@ -43,6 +43,9 @@ jobs:
       - name: Attendance and presence verification
         run: npm run attendance:check
 
+      - name: Requests and approvals verification
+        run: npm run requests:check
+
       - name: Lint
         run: npm run lint
 

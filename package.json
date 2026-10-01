@@ -15,7 +15,8 @@
     "auth:check": "node scripts/verify-auth.mjs",
     "employees:check": "node scripts/verify-employees.mjs",
     "myday:check": "node scripts/verify-my-day.mjs",
-    "attendance:check": "node scripts/verify-attendance.mjs"
+    "attendance:check": "node scripts/verify-attendance.mjs",
+    "requests:check": "node scripts/verify-requests.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "0.12.7",
