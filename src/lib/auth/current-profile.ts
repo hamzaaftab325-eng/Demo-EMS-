@@ -77,7 +77,7 @@ export async function requireCurrentProfile() {
   }
 
   if (!access.profile.auth_activated_at) {
-    redirect("/set-password");
+    redirect("/signup");
   }
 
   return access.profile;

@@ -242,3 +242,13 @@ handling and internal-app security headers are enabled, and browser/server
 Supabase clients remain separated.
 
 See `docs/PHASE_1_FOUNDATION_QA.md` for the acceptance record.
+
+
+## Phase 2 authentication gate
+
+Authentication and access are guarded by `npm run auth:check`, the Supabase
+session/profile guard, role-aware route checks and PostgreSQL RLS. Account
+activation is now part of the database authorization identity: an invite
+session cannot access operational EMS data until password setup completes.
+
+See `docs/PHASE_2_AUTH_QA.md` for the acceptance matrix.
