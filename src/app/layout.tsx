@@ -8,6 +8,11 @@ export const metadata: Metadata = {
     template: "%s | eMarketSelect EMS",
   },
   description: "Internal employee management system for eMarketSelect.",
+  robots: {
+    index: false,
+    follow: false,
+    nocache: true,
+  },
 };
 
 export const viewport: Viewport = {
