@@ -79,6 +79,13 @@ export type MyDayEvent = {
   source: string;
 };
 
+export type MyDayPresenceEvent = {
+  id: string;
+  status: MyDayPresenceStatus;
+  startedAt: string;
+  endedAt: string | null;
+};
+
 export type MyDayState = {
   workDate: string;
   timezone: string;
@@ -134,6 +141,7 @@ export type MyDayState = {
   obstacles: MyDayObstacle[];
   intervals: MyDayInterval[];
   attendanceEvents: MyDayEvent[];
+  presenceEvents: MyDayPresenceEvent[];
   presence: {
     status: MyDayPresenceStatus;
     lastHeartbeatAt: string | null;
@@ -309,6 +317,7 @@ function parseState(value: Json): MyDayState {
         source: str(row.source, "ems"),
       };
     }),
+    presenceEvents: [],
     presence: null,
   };
 }
@@ -323,25 +332,35 @@ export async function getMyDayState() {
 
   const state = parseState(data);
 
-  const [{ data: attendance, error: attendanceError }, { data: presence, error: presenceError }] =
-    await Promise.all([
-      state.workday?.id
-        ? supabase
-            .from("workdays")
-            .select(
-              "first_sign_in_at, final_sign_off_at, scheduled_minutes, gross_minutes, break_minutes, meeting_minutes, net_work_minutes, late_minutes, overtime_minutes",
-            )
-            .eq("id", state.workday.id)
-            .maybeSingle()
-        : Promise.resolve({ data: null, error: null }),
-      supabase
-        .from("employee_presence")
-        .select(
-          "status, last_heartbeat_at, last_activity_at, tab_connected",
-        )
-        .eq("employee_id", state.profile.id)
-        .maybeSingle(),
-    ]);
+  const [
+    { data: attendance, error: attendanceError },
+    { data: presence, error: presenceError },
+    { data: presenceEvents, error: presenceEventsError },
+  ] = await Promise.all([
+    state.workday?.id
+      ? supabase
+          .from("workdays")
+          .select(
+            "first_sign_in_at, final_sign_off_at, scheduled_minutes, gross_minutes, break_minutes, meeting_minutes, net_work_minutes, late_minutes, overtime_minutes",
+          )
+          .eq("id", state.workday.id)
+          .maybeSingle()
+      : Promise.resolve({ data: null, error: null }),
+    supabase
+      .from("employee_presence")
+      .select(
+        "status, last_heartbeat_at, last_activity_at, tab_connected",
+      )
+      .eq("employee_id", state.profile.id)
+      .maybeSingle(),
+    state.workday?.id
+      ? supabase
+          .from("presence_events")
+          .select("id, status, started_at, ended_at")
+          .eq("workday_id", state.workday.id)
+          .order("started_at")
+      : Promise.resolve({ data: [], error: null }),
+  ]);
 
   if (attendanceError) {
     throw new Error("Could not load today's attendance totals.");
@@ -349,6 +368,10 @@ export async function getMyDayState() {
 
   if (presenceError) {
     throw new Error("Could not load your current presence.");
+  }
+
+  if (presenceEventsError) {
+    throw new Error("Could not load your presence timeline.");
   }
 
   if (state.workday && attendance) {
@@ -362,6 +385,13 @@ export async function getMyDayState() {
     state.workday.lateMinutes = attendance.late_minutes;
     state.workday.overtimeMinutes = attendance.overtime_minutes;
   }
+
+  state.presenceEvents = (presenceEvents ?? []).map((event) => ({
+    id: event.id,
+    status: event.status,
+    startedAt: event.started_at,
+    endedAt: event.ended_at,
+  }));
 
   state.presence = presence
     ? {
