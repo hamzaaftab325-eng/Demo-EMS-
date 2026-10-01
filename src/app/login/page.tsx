@@ -44,7 +44,7 @@ export default async function LoginPage({
             <p className="login-eyebrow">Employee Management System</p>
             <h1 id="login-title">Welcome back</h1>
             <p className="login-copy">
-              Sign in with your approved EMS account to continue.
+              Sign in with your current EMS login email and password.
             </p>
           </div>
         </div>
@@ -70,7 +70,7 @@ export default async function LoginPage({
             {nextPath ? <input type="hidden" name="next" value={nextPath} /> : null}
 
             <label className="f">
-              <span>Email</span>
+              <span>Work / login email</span>
               <input
                 type="email"
                 name="email"
