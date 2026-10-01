@@ -60,10 +60,6 @@ function createEmployeeErrorMessage(message: string) {
   return clean || "Could not create employee. Review the form and try again.";
 }
 
-const ACCOUNT_SETUP_URL =
-  process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") ??
-  "https://demo-ems-ten.vercel.app";
-
 type InviteStatus =
   | "sent"
   | "resent"
@@ -88,7 +84,6 @@ async function sendAccountSetup(employeeId: string): Promise<InviteStatus> {
       body: {
         action: "invite",
         employee_id: employeeId,
-        redirect_to: `${ACCOUNT_SETUP_URL}/set-password`,
       },
       headers: {
         Authorization: `Bearer ${session.access_token}`,

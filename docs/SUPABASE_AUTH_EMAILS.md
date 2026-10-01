@@ -34,13 +34,23 @@ Paste the contents of:
 
 ## Redirect configuration
 
-In Supabase Dashboard → Authentication → URL Configuration, ensure the production EMS URL is allowed:
+In Supabase Dashboard → Authentication → URL Configuration:
+
+**Site URL**
+
+`https://demo-ems-ten.vercel.app`
+
+**Production redirect URL**
 
 `https://demo-ems-ten.vercel.app/set-password`
 
-For local testing, add:
+Employee invitations are always generated against the hosted EMS domain. Supabase verifies the invitation on the allow-listed `/set-password` callback, then the application presents the employee-facing `/signup` activation URL.
+
+For local recovery testing only, you may also allow:
 
 `http://localhost:3000/set-password`
+
+Do not use localhost as the hosted project's Site URL.
 
 ## Production
 
