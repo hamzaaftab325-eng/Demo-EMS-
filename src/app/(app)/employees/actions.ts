@@ -10,6 +10,13 @@ import type { Database } from "@/types/database";
 type AppRole = Database["public"]["Enums"]["app_role"];
 type EmploymentType = Database["public"]["Enums"]["employment_type"];
 type EmploymentStatus = Database["public"]["Enums"]["employment_status"];
+type FunctionArgs<T> = T extends { Args: infer A } ? A : never;
+type AdminCreateEmployeeArgs = FunctionArgs<
+  Database["public"]["Functions"]["admin_create_employee"]
+>;
+type AdminUpdateEmployeeArgs = FunctionArgs<
+  Database["public"]["Functions"]["admin_update_employee"]
+>;
 
 function textValue(formData: FormData, key: string) {
   const value = formData.get(key);
@@ -34,7 +41,23 @@ function createEmployeeErrorMessage(message: string) {
   }
 
   if (clean.includes("Email is already assigned")) {
-    return "Email is already assigned to another employee.";
+    return "This login email is already assigned to another employee.";
+  }
+
+  if (clean.includes("Personal/setup email is already assigned")) {
+    return "This setup email is already assigned to another employee.";
+  }
+
+  if (clean.includes("Production employees require a work email")) {
+    return "Production employees require an @emarketselect.com work email.";
+  }
+
+  if (clean.includes("Production work email must use")) {
+    return "Production work email must use @emarketselect.com.";
+  }
+
+  if (clean.includes("current EMS environment")) {
+    return "The employee must be created in the same EMS environment as the administrator.";
   }
 
   if (clean.includes("Select an active department")) {
@@ -69,47 +92,64 @@ type InviteStatus =
   | "email_rate_limited"
   | "failed";
 
-async function sendAccountSetup(employeeId: string): Promise<InviteStatus> {
+type AccessStatus =
+  | "work_email_assigned"
+  | "work_email_already_assigned"
+  | "requires_activation"
+  | "invalid_work_email"
+  | "work_email_failed"
+  | "failed";
+
+async function invokeEmployeeAccount(
+  body: Record<string, string>,
+): Promise<{ status: string; message?: string }> {
   const supabase = await createClient();
   const {
     data: { session },
   } = await supabase.auth.getSession();
 
   if (!session?.access_token) {
-    return "failed";
+    return { status: "failed", message: "Your administrator session expired." };
   }
 
-  const { data, error } = await supabase.functions.invoke(
-    "employee-account",
-    {
-      body: {
-        action: "invite",
-        employee_id: employeeId,
-      },
-      headers: {
-        Authorization: `Bearer ${session.access_token}`,
-      },
+  const { data, error } = await supabase.functions.invoke("employee-account", {
+    body,
+    headers: {
+      Authorization: `Bearer ${session.access_token}`,
     },
-  );
+  });
 
   if (error) {
-    return "failed";
+    return { status: "failed", message: "The employee access service rejected the request." };
   }
 
   const status =
     data && typeof data === "object" && "status" in data
       ? String(data.status)
-      : "";
+      : "failed";
+  const message =
+    data && typeof data === "object" && "message" in data
+      ? String(data.message)
+      : undefined;
+
+  return { status, message };
+}
+
+async function sendAccountSetup(employeeId: string): Promise<InviteStatus> {
+  const result = await invokeEmployeeAccount({
+    action: "invite",
+    employee_id: employeeId,
+  });
 
   if (
-    status === "sent" ||
-    status === "resent" ||
-    status === "already_active" ||
-    status === "demo_address" ||
-    status === "demo_email_not_authorized" ||
-    status === "email_rate_limited"
+    result.status === "sent" ||
+    result.status === "resent" ||
+    result.status === "already_active" ||
+    result.status === "demo_address" ||
+    result.status === "demo_email_not_authorized" ||
+    result.status === "email_rate_limited"
   ) {
-    return status;
+    return result.status;
   }
 
   return "failed";
@@ -120,7 +160,9 @@ export async function createEmployee(formData: FormData) {
   const supabase = await createClient();
 
   const employeeCode = textValue(formData, "employee_code");
-  const email = textValue(formData, "email").toLowerCase();
+  const personalEmail = textValue(formData, "personal_email").toLowerCase();
+  const workEmail = nullableValue(formData, "work_email")?.toLowerCase() ?? null;
+  const loginEmail = workEmail ?? personalEmail;
   const fullName = textValue(formData, "full_name");
   const jobTitle = textValue(formData, "job_title");
   const departmentId = textValue(formData, "department_id");
@@ -133,7 +175,8 @@ export async function createEmployee(formData: FormData) {
 
   if (
     !employeeCode ||
-    !email ||
+    !personalEmail ||
+    !loginEmail ||
     !fullName ||
     !jobTitle ||
     !departmentId ||
@@ -143,22 +186,33 @@ export async function createEmployee(formData: FormData) {
     fail("/employees/new", "Complete all required employee fields.");
   }
 
+  if (!current.is_test_account && !workEmail) {
+    fail(
+      "/employees/new",
+      "Production employees require an @emarketselect.com work email.",
+    );
+  }
+
+  const createArgs = {
+    p_employee_code: employeeCode,
+    p_email: loginEmail,
+    p_full_name: fullName,
+    p_job_title: jobTitle,
+    p_department_id: departmentId,
+    p_employment_type: employmentType,
+    p_role: role,
+    p_timezone: timezone,
+    p_hire_date: hireDate,
+    p_manager_id: managerId,
+    p_schedule_id: scheduleId,
+    p_is_test_account: current.is_test_account,
+    p_personal_email: personalEmail,
+    p_work_email: workEmail,
+  } as unknown as AdminCreateEmployeeArgs;
+
   const { data: employeeId, error } = await supabase.rpc(
     "admin_create_employee",
-    {
-      p_employee_code: employeeCode,
-      p_email: email,
-      p_full_name: fullName,
-      p_job_title: jobTitle,
-      p_department_id: departmentId,
-      p_employment_type: employmentType,
-      p_role: role,
-      p_timezone: timezone,
-      p_hire_date: hireDate ?? undefined,
-      p_manager_id: managerId ?? undefined,
-      p_schedule_id: scheduleId ?? undefined,
-      p_is_test_account: current.is_test_account,
-    },
+    createArgs,
   );
 
   if (error || !employeeId) {
@@ -192,6 +246,7 @@ export async function updateEmployee(formData: FormData) {
   const employeeId = textValue(formData, "employee_id");
   const employeeCode = textValue(formData, "employee_code");
   const email = textValue(formData, "email").toLowerCase();
+  const personalEmail = textValue(formData, "personal_email").toLowerCase();
   const fullName = textValue(formData, "full_name");
   const jobTitle = textValue(formData, "job_title");
   const departmentId = textValue(formData, "department_id");
@@ -211,6 +266,10 @@ export async function updateEmployee(formData: FormData) {
     fail("/employees", "Employee ID is missing.");
   }
 
+  if (!personalEmail) {
+    fail(`/employees/${employeeId}`, "Setup email is required.");
+  }
+
   const updateArgs = {
     p_employee_id: employeeId,
     p_employee_code: employeeCode,
@@ -226,14 +285,20 @@ export async function updateEmployee(formData: FormData) {
     p_schedule_id: scheduleId,
     p_employment_status: employmentStatus,
     p_deactivation_reason: deactivationReason,
-  } as unknown as Database["public"]["Functions"]["admin_update_employee"]["Args"];
+    p_personal_email: personalEmail,
+  } as unknown as AdminUpdateEmployeeArgs;
 
   const { error } = await supabase.rpc("admin_update_employee", updateArgs);
 
   if (error) {
+    const clean = error.message.replace(/^.*?:\s*/, "").trim();
     fail(
       `/employees/${employeeId}`,
-      "Could not update employee. Check unique fields, reporting hierarchy and deactivation reason.",
+      clean.includes("Login email changes must use System access")
+        ? "Change the employee login identity from System access, not the profile form."
+        : clean.includes("Personal/recovery email is already assigned")
+          ? "This setup email is already assigned to another employee."
+          : "Could not update employee. Check unique fields, reporting hierarchy and deactivation reason.",
     );
   }
 
@@ -242,7 +307,6 @@ export async function updateEmployee(formData: FormData) {
   revalidatePath("/dashboard");
   redirect(`/employees/${employeeId}?updated=1`);
 }
-
 
 export async function sendEmployeeInvite(formData: FormData) {
   await requireRole(ADMIN_ROLES);
@@ -258,4 +322,47 @@ export async function sendEmployeeInvite(formData: FormData) {
   revalidatePath(`/employees/${employeeId}`);
 
   redirect(`/employees/${employeeId}?invite=${inviteStatus}`);
+}
+
+export async function assignEmployeeWorkEmail(formData: FormData) {
+  await requireRole(ADMIN_ROLES);
+
+  const employeeId = textValue(formData, "employee_id");
+  const workEmail = textValue(formData, "work_email").toLowerCase();
+
+  if (!employeeId) {
+    fail("/employees", "Employee ID is missing.");
+  }
+
+  if (!workEmail) {
+    fail(`/employees/${employeeId}`, "Enter the employee work email.");
+  }
+
+  const result = await invokeEmployeeAccount({
+    action: "assign_work_email",
+    employee_id: employeeId,
+    work_email: workEmail,
+  });
+  const status = result.status as AccessStatus;
+
+  if (
+    status !== "work_email_assigned" &&
+    status !== "work_email_already_assigned"
+  ) {
+    fail(
+      `/employees/${employeeId}`,
+      result.message ??
+        (status === "requires_activation"
+          ? "The employee must finish account setup before a work email can be assigned."
+          : status === "invalid_work_email"
+            ? "Enter a valid work email."
+            : "Could not assign the employee work email."),
+    );
+  }
+
+  revalidatePath("/employees");
+  revalidatePath(`/employees/${employeeId}`);
+  revalidatePath("/dashboard");
+
+  redirect(`/employees/${employeeId}?access=${status}`);
 }
