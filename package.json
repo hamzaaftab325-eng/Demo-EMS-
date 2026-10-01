@@ -11,7 +11,8 @@
     "start": "next start",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "foundation:check": "node scripts/verify-foundation.mjs"
+    "foundation:check": "node scripts/verify-foundation.mjs",
+    "auth:check": "node scripts/verify-auth.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "0.12.7",
