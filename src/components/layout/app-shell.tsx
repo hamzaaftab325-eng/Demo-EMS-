@@ -1,8 +1,9 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
-import { LogOut, Menu, Moon } from "lucide-react";
+import { Bell, LogOut, Menu, Moon } from "lucide-react";
 import { logout } from "@/app/auth/actions";
 import { NavigationLinks } from "@/components/layout/navigation-links";
 import { PresenceHeartbeat } from "@/components/presence/presence-heartbeat";
@@ -20,9 +21,11 @@ function initials(name: string) {
 
 export function AppShell({
   profile,
+  unreadNotifications,
   children,
 }: {
   profile: CurrentProfile;
+  unreadNotifications: number;
   children: ReactNode;
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -81,7 +84,7 @@ export function AppShell({
           <div className="demo">
             <b>Development account.</b>
             <span>
-              Phases 1–5 are live on Supabase. Later modules remain clearly staged.
+              Phases 1–6 are live on Supabase. Management reports are next.
             </span>
           </div>
         ) : null}
@@ -96,6 +99,21 @@ export function AppShell({
           </button>
 
           <div className="sp" />
+
+          <Link
+            href="/notifications"
+            className="notification-bell"
+            aria-label={
+              unreadNotifications > 0
+                ? unreadNotifications + " unread notifications"
+                : "Notifications"
+            }
+          >
+            <Bell size={18} />
+            {unreadNotifications > 0 ? (
+              <span>{unreadNotifications > 99 ? "99+" : unreadNotifications}</span>
+            ) : null}
+          </Link>
 
           <div className="account-copy hide-sm">
             <strong>{profile.full_name}</strong>
