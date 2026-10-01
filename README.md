@@ -121,7 +121,7 @@ This avoids building a second copy of scrum data: Phase 7 will read the same Pha
 ### Phase 5 production behavior
 
 - Heartbeat sends only a timestamp about once per minute while the EMS app is open.
-- Last activity stores only the time of the last click or key press inside EMS, never the content.
+- Last activity stores only the timestamp of EMS interaction (pointer, keyboard, input, scroll, focus/visibility), never the interaction content.
 - Active: activity within 5 minutes while heartbeat is current.
 - Idle: no EMS interaction for 5–15 minutes while heartbeat continues.
 - Away: activity is older than 15 minutes or the heartbeat is stale.

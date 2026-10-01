@@ -15,8 +15,21 @@ function requireText(content, needle, label) {
 
 const heartbeat = read("src/components/presence/presence-heartbeat.tsx");
 requireText(heartbeat, 'rpc("presence_heartbeat"', "Presence heartbeat RPC");
-requireText(heartbeat, '"click"', "EMS click activity tracking");
-requireText(heartbeat, '"keydown"', "EMS keyboard activity timestamp");
+for (const eventName of [
+  "pointerdown",
+  "keydown",
+  "input",
+  "scroll",
+  "focus",
+  "visibilitychange",
+]) {
+  requireText(heartbeat, eventName, "EMS activity tracking");
+}
+requireText(
+  heartbeat,
+  "scheduleActivityHeartbeat",
+  "Prompt activity heartbeat",
+);
 requireText(heartbeat, "heartbeat_interval_seconds", "Configurable heartbeat interval");
 
 const attendance = read("src/lib/data/attendance.ts");

@@ -10,10 +10,7 @@ export function PresenceHeartbeat() {
   useEffect(() => {
     let cancelled = false;
     let timer: ReturnType<typeof setInterval> | null = null;
-
-    const markActivity = () => {
-      lastActivityAt.current = new Date().toISOString();
-    };
+    let activityTimer: ReturnType<typeof setTimeout> | null = null;
 
     const sendHeartbeat = async () => {
       if (cancelled) return;
@@ -21,6 +18,21 @@ export function PresenceHeartbeat() {
       await supabase.rpc("presence_heartbeat", {
         p_last_activity_at: lastActivityAt.current,
       });
+    };
+
+    const scheduleActivityHeartbeat = () => {
+      if (cancelled) return;
+      if (activityTimer) clearTimeout(activityTimer);
+
+      activityTimer = setTimeout(() => {
+        activityTimer = null;
+        void sendHeartbeat();
+      }, 750);
+    };
+
+    const markActivity = () => {
+      lastActivityAt.current = new Date().toISOString();
+      scheduleActivityHeartbeat();
     };
 
     const start = async () => {
@@ -47,22 +59,31 @@ export function PresenceHeartbeat() {
     const onVisibility = () => {
       if (document.visibilityState === "visible") {
         markActivity();
-        void sendHeartbeat();
       }
     };
 
-    document.addEventListener("click", markActivity, { passive: true });
+    document.addEventListener("pointerdown", markActivity, { passive: true });
     document.addEventListener("keydown", markActivity);
+    document.addEventListener("input", markActivity);
     document.addEventListener("visibilitychange", onVisibility);
+    window.addEventListener("scroll", markActivity, {
+      passive: true,
+      capture: true,
+    });
+    window.addEventListener("focus", markActivity);
 
     void start();
 
     return () => {
       cancelled = true;
       if (timer) clearInterval(timer);
-      document.removeEventListener("click", markActivity);
+      if (activityTimer) clearTimeout(activityTimer);
+      document.removeEventListener("pointerdown", markActivity);
       document.removeEventListener("keydown", markActivity);
+      document.removeEventListener("input", markActivity);
       document.removeEventListener("visibilitychange", onVisibility);
+      window.removeEventListener("scroll", markActivity, true);
+      window.removeEventListener("focus", markActivity);
     };
   }, [supabase]);
 
