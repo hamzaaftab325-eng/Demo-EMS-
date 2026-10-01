@@ -60,18 +60,6 @@ function createEmployeeErrorMessage(message: string) {
   return clean || "Could not create employee. Review the form and try again.";
 }
 
-const PRODUCTION_APP_URL = "https://demo-ems-ten.vercel.app";
-
-function accountSetupBaseUrl() {
-  const configured = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "");
-
-  if (configured?.startsWith("https://")) {
-    return configured;
-  }
-
-  return PRODUCTION_APP_URL;
-}
-
 type InviteStatus =
   | "sent"
   | "resent"
@@ -96,7 +84,6 @@ async function sendAccountSetup(employeeId: string): Promise<InviteStatus> {
       body: {
         action: "invite",
         employee_id: employeeId,
-        redirect_to: `${accountSetupBaseUrl()}/set-password?mode=invite`,
       },
       headers: {
         Authorization: `Bearer ${session.access_token}`,
