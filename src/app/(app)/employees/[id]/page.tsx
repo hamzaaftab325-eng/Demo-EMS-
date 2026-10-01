@@ -25,13 +25,17 @@ export default async function EmployeeDetailPage({
 }) {
   const current = await requireRole(TEAM_ROLES);
   const { id } = await params;
-  const [employee, options, query] = await Promise.all([
+  const [employee, query] = await Promise.all([
     getEmployeeById(current, id),
-    getOrganizationOptions(current),
     searchParams,
   ]);
 
   if (!employee) notFound();
+
+  const options = await getOrganizationOptions(
+    current,
+    employee.scheduleId,
+  );
 
   const canEdit = current.role === "super_admin";
   const error = single(query.error);
