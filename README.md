@@ -4,7 +4,7 @@ Production Employee Management System for eMarketSelect.
 
 ## Current status
 
-**Phase 6 — Requests & Approvals: COMPLETE**
+**Phases 1–6: COMPLETE AND STABILIZED**
 
 Phase 1 established the production Next.js foundation. Phase 2 added real Supabase authentication and protected role-based access. Phase 3 now connects the organization layer to live Supabase data.
 
@@ -41,6 +41,11 @@ Rayan Enzo currently has a Supabase Auth identity. Other demo profiles are linke
 - Tailwind CSS 4 + approved EMS prototype design system
 - Supabase PostgreSQL, Auth, RLS and Realtime
 - Vercel deployment from `main`
+
+### Runtime baseline
+
+- Node.js 24.x is the single supported runtime for local development, GitHub CI, and Vercel.
+- `package.json`, `package-lock.json`, and CI are aligned to Node 24.x so Vercel does not apply a version override.
 
 ## Local setup
 
@@ -143,9 +148,9 @@ Phase 6 is live:
 Team scrum board, blockers, manager-added work, employee drill-down, richer management reporting and CSV exports.
 
 
-## Phase 1–5 final audit
+## Phase 1–6 final audit
 
-The stabilization audit completed after Phase 5 verifies:
+The stabilization audit through Phase 6 verifies:
 
 - Authentication/session guards and role-aware navigation
 - Employee hierarchy, schedule history and reporting-cycle protection
@@ -212,3 +217,17 @@ Phase 6 now treats approved leave and approved schedules as canonical operationa
 - A notification center exposes request workflow notifications and read/unread state.
 - Phase 6 table grants are reduced to the browser permissions actually required.
 - Exposed request RPCs are SECURITY INVOKER wrappers over private privileged implementations.
+
+
+### Phase 1–6 finalization
+
+Phases 1 through 6 are treated as the stable production foundation before Phase 7 begins:
+
+- Phase 1 — Project Foundation: complete
+- Phase 2 — Auth & Access: complete
+- Phase 3 — Employees & Company Structure: complete
+- Phase 4 — My Day & Scrum: complete
+- Phase 5 — Attendance & Live Presence: complete
+- Phase 6 — Requests & Approvals: complete
+
+The finalization gate requires a clean lint, TypeScript check, production build, successful Vercel deployment, applied Supabase migrations, RLS on exposed tables, and no direct authenticated writes to protected request/ledger tables.
