@@ -45,7 +45,7 @@ requireText(actions, "p_work_email", "Employee actions");
 
 const employeePage = read("src/app/(app)/employees/[id]/page.tsx");
 requireText(employeePage, "Assign work login email", "Employee System access");
-requireText(employeePage, "same password", "Employee System access");
+requireText(employeePage, "keeps the password already created", "Employee System access");
 requireText(employeePage, "Resend account setup", "Employee System access");
 
 const organization = read("src/lib/data/organization.ts");
