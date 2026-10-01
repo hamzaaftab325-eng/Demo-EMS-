@@ -85,14 +85,11 @@ My Day & Scrum is now backed by transactional Supabase workflows:
 - Sign back in on the same work date
 - Real timeline from attendance events and work intervals
 
-Phase 5 will add heartbeat, idle/away detection, official attendance calculations, late/core-hour rules, and manager attendance views.
+Phase 5 added heartbeat, idle/away detection, official attendance calculations, late/core-hour rules, CSV export, correction auditing, automatic inactivity sign-off, and manager attendance views.
 
+## Phase 5 — Attendance & Presence
 
-## Next
-
-**Phase 5 — Attendance & Presence: COMPLETE**
-
-Phase 5 is live: heartbeat, idle/away, realtime team presence, attendance calculations, target hours, breaks, meetings, late/core-hour rules, CSV export, correction auditing, automatic inactivity sign-off, and manager Live View.
+Phase 5 is complete and live: heartbeat, idle/away, realtime team presence, attendance calculations, target hours, breaks, meetings, late/core-hour rules, CSV export, correction auditing, automatic inactivity sign-off, and manager Live View.
 
 
 ### Manager visibility after Phase 4
