@@ -31,6 +31,9 @@ jobs:
       - name: Foundation verification
         run: npm run foundation:check
 
+      - name: Authentication verification
+        run: npm run auth:check
+
       - name: Lint
         run: npm run lint
 
