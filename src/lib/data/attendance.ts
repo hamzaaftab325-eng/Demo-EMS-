@@ -12,6 +12,7 @@ type WorkdayStatus = Database["public"]["Enums"]["workday_status"];
 type ScheduleType = Database["public"]["Enums"]["schedule_type"];
 type WorkdayRow = Database["public"]["Tables"]["workdays"]["Row"];
 type PresenceRow = Database["public"]["Tables"]["employee_presence"]["Row"];
+type PresenceEventRow = Database["public"]["Tables"]["presence_events"]["Row"];
 type ScheduleRow = Database["public"]["Tables"]["work_schedules"]["Row"];
 type IntervalRow = Database["public"]["Tables"]["work_intervals"]["Row"];
 
@@ -59,6 +60,12 @@ export type TeamAttendanceRow = {
     id: string;
     intervalType: Database["public"]["Enums"]["interval_type"];
     status: Database["public"]["Enums"]["interval_status"];
+    startedAt: string;
+    endedAt: string | null;
+  }>;
+  presenceEvents: Array<{
+    id: string;
+    status: PresenceStatus;
     startedAt: string;
     endedAt: string | null;
   }>;
@@ -151,6 +158,7 @@ function mapRow(
   presence: PresenceRow | undefined,
   schedule: ScheduleRow | null,
   intervals: IntervalRow[],
+  presenceEvents: PresenceEventRow[],
   corrected: boolean,
   now: Date,
 ): TeamAttendanceRow {
@@ -217,6 +225,12 @@ function mapRow(
       status: interval.status,
       startedAt: interval.started_at,
       endedAt: interval.ended_at,
+    })),
+    presenceEvents: presenceEvents.map((event) => ({
+      id: event.id,
+      status: event.status,
+      startedAt: event.started_at,
+      endedAt: event.ended_at,
     })),
     corrected,
   };
@@ -353,6 +367,7 @@ export async function getLiveTeam(
 
   const [
     { data: intervals, error: intervalsError },
+    { data: presenceEvents, error: presenceEventsError },
     { data: corrections, error: correctionsError },
   ] = await Promise.all([
     workdayIds.length
@@ -365,13 +380,22 @@ export async function getLiveTeam(
       : Promise.resolve({ data: [], error: null }),
     workdayIds.length
       ? supabase
+          .from("presence_events")
+          .select(
+            "id, employee_id, workday_id, status, started_at, ended_at, created_at",
+          )
+          .in("workday_id", workdayIds)
+          .order("started_at")
+      : Promise.resolve({ data: [], error: null }),
+    workdayIds.length
+      ? supabase
           .from("attendance_corrections")
           .select("workday_id")
           .in("workday_id", workdayIds)
       : Promise.resolve({ data: [], error: null }),
   ]);
 
-  if (intervalsError || correctionsError) {
+  if (intervalsError || presenceEventsError || correctionsError) {
     throw new Error("Could not load live attendance details.");
   }
 
@@ -382,11 +406,19 @@ export async function getLiveTeam(
     (corrections ?? []).map((row) => row.workday_id),
   );
   const intervalMap = new Map<string, IntervalRow[]>();
+  const presenceEventMap = new Map<string, PresenceEventRow[]>();
 
   for (const interval of intervals ?? []) {
     const list = intervalMap.get(interval.workday_id) ?? [];
     list.push(interval);
     intervalMap.set(interval.workday_id, list);
+  }
+
+  for (const event of presenceEvents ?? []) {
+    if (!event.workday_id) continue;
+    const list = presenceEventMap.get(event.workday_id) ?? [];
+    list.push(event);
+    presenceEventMap.set(event.workday_id, list);
   }
 
   return employees
@@ -412,6 +444,7 @@ export async function getLiveTeam(
         livePresence,
         schedule,
         workday ? intervalMap.get(workday.id) ?? [] : [],
+        workday ? presenceEventMap.get(workday.id) ?? [] : [],
         workday ? correctedWorkdays.has(workday.id) : false,
         now,
       );
@@ -487,6 +520,7 @@ export async function getAttendanceTeam(
         workday,
         undefined,
         schedule,
+        [],
         [],
         workday ? correctedWorkdays.has(workday.id) : false,
         now,
