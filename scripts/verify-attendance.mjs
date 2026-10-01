@@ -35,12 +35,16 @@ requireText(heartbeat, "heartbeat_interval_seconds", "Configurable heartbeat int
 const attendance = read("src/lib/data/attendance.ts");
 requireText(attendance, "presenceWorkdayIds", "Cross-midnight presence workday loading");
 requireText(attendance, "selectedByEmployee", "Live workday selection");
+requireText(attendance, '.from("presence_events")', "Presence history loading");
+requireText(attendance, "presenceEventMap", "Presence history workday mapping");
 requireText(attendance, '"working", "on_break", "in_meeting"', "Open workday continuity");
 requireText(attendance, "presenceRow.workday_id === workday.id", "Stale presence isolation");
 requireText(attendance, "expectedMissingNow", "Expected sign-in calculation");
 
 const liveView = read("src/app/(app)/live-view/page.tsx");
 requireText(liveView, 'RealtimeRefresh tables={["employee_presence", "workdays"]}', "Live View realtime");
+requireText(liveView, '["Idle", "var(--idle)"]', "Live View Idle timeline legend");
+requireText(liveView, '["Away", "var(--away)"]', "Live View Away timeline legend");
 requireText(liveView, "statusOptions", "Live View status filters");
 requireText(liveView, "department", "Live View department filter");
 requireText(liveView, "Search name, ID, role or department", "Live View search");
@@ -96,3 +100,18 @@ const helperLockdown = read("supabase/migrations/20261001170649_phase5_restrict_
 requireText(helperLockdown, "revoke execute on function private.same_profile_environment", "Private helper lockdown");
 
 console.log("Phase 5 Attendance & Live Presence verification passed.");
+
+const liveTimeline = read("src/components/attendance/timeline-strip.tsx");
+requireText(liveTimeline, "row.presenceEvents", "Live timeline presence history");
+requireText(liveTimeline, 'return "var(--idle)"', "Idle timeline color");
+requireText(liveTimeline, 'return "var(--away)"', "Away timeline color");
+requireText(liveTimeline, 'return "Signed off"', "Signed-off timeline state");
+
+const myDayState = read("src/lib/my-day/state.ts");
+requireText(myDayState, '.from("presence_events")', "My Day presence history loading");
+requireText(myDayState, "presenceEvents:", "My Day presence timeline state");
+
+const myDayTimeline = read("src/components/my-day/my-day-client.tsx");
+requireText(myDayTimeline, "state.presenceEvents.length > 0", "My Day uses presence history");
+requireText(myDayTimeline, '["Idle", "var(--idle)"]', "My Day Idle timeline legend");
+requireText(myDayTimeline, '["Away", "var(--away)"]', "My Day Away timeline legend");
