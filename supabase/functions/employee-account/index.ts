@@ -174,7 +174,7 @@ Deno.serve(async (req: Request) => {
   const { data: target, error: targetError } = await adminClient
     .from("profiles")
     .select(
-      "id, email, full_name, employee_code, job_title, role, is_active, employment_status, is_test_account, auth_user_id, auth_invited_at, auth_activated_at",
+      "id, email, full_name, employee_code, job_title, role, is_active, employment_status, is_test_account, auth_user_id, auth_invited_at, auth_activated_at, deleted_at",
     )
     .eq("id", body.employee_id)
     .maybeSingle();
@@ -182,8 +182,6 @@ Deno.serve(async (req: Request) => {
   if (
     targetError ||
     !target ||
-    !target.is_active ||
-    target.employment_status === "deactivated" ||
     target.is_test_account !== caller.is_test_account
   ) {
     return json(req, 404, {
