@@ -40,6 +40,9 @@ jobs:
       - name: My Day and Scrum verification
         run: npm run myday:check
 
+      - name: Attendance and presence verification
+        run: npm run attendance:check
+
       - name: Lint
         run: npm run lint
 
