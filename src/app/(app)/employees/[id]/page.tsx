@@ -91,10 +91,19 @@ export default async function EmployeeDetailPage({
           custom SMTP.
         </div>
       ) : null}
+      {invite === "email_rate_limited" ? (
+        <div className="form-error">
+          The employee profile was saved, but Supabase&apos;s built-in email
+          sender has reached its project email limit. No login account was
+          created. Retry from System access after the email quota refreshes, or
+          configure custom SMTP for reliable employee onboarding.
+        </div>
+      ) : null}
       {invite === "failed" ? (
         <div className="form-error">
-          The employee profile was saved, but the setup email could not be
-          sent. You can retry from System access.
+          The employee profile was saved, but the setup email provider rejected
+          the invitation. No login account was created. Retry from System access
+          or review the Supabase Auth email configuration.
         </div>
       ) : null}
       {error ? <div className="form-error">{error}</div> : null}

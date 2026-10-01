@@ -66,6 +66,7 @@ type InviteStatus =
   | "already_active"
   | "demo_address"
   | "demo_email_not_authorized"
+  | "email_rate_limited"
   | "failed";
 
 async function sendAccountSetup(employeeId: string): Promise<InviteStatus> {
@@ -105,7 +106,8 @@ async function sendAccountSetup(employeeId: string): Promise<InviteStatus> {
     status === "resent" ||
     status === "already_active" ||
     status === "demo_address" ||
-    status === "demo_email_not_authorized"
+    status === "demo_email_not_authorized" ||
+    status === "email_rate_limited"
   ) {
     return status;
   }

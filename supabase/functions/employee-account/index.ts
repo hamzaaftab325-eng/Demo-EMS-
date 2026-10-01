@@ -63,6 +63,14 @@ function emailFailureStatus(message: string) {
     return "demo_email_not_authorized";
   }
 
+  if (
+    normalized.includes("rate limit") ||
+    normalized.includes("too many requests") ||
+    normalized.includes("email rate limit exceeded")
+  ) {
+    return "email_rate_limited";
+  }
+
   return "failed";
 }
 
@@ -183,6 +191,20 @@ Deno.serve(async (req: Request) => {
     });
   }
 
+  async function writeFailureAudit(status: string, message: string) {
+    await adminClient.from("audit_logs").insert({
+      actor_id: caller.id,
+      action: "employee_invitation_failed",
+      entity_type: "profile",
+      entity_id: target.id,
+      after_data: {
+        email: target.email,
+        status,
+      },
+      reason: message.slice(0, 500),
+    });
+  }
+
   async function writeAudit(action: string, invitedAt: string) {
     await adminClient.from("audit_logs").insert({
       actor_id: caller.id,
@@ -208,9 +230,12 @@ Deno.serve(async (req: Request) => {
       });
 
     if (resendError) {
+      const status = emailFailureStatus(resendError.message);
+      await writeFailureAudit(status, resendError.message);
+
       return json(req, 200, {
         ok: false,
-        status: emailFailureStatus(resendError.message),
+        status,
         message: resendError.message,
       });
     }
@@ -252,10 +277,13 @@ Deno.serve(async (req: Request) => {
 
   if (inviteError || !inviteData.user) {
     const message = inviteError?.message ?? "Invitation could not be sent.";
+    const status = emailFailureStatus(message);
+
+    await writeFailureAudit(status, message);
 
     return json(req, 200, {
       ok: false,
-      status: emailFailureStatus(message),
+      status,
       message,
     });
   }
