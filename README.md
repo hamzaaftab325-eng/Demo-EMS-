@@ -275,3 +275,18 @@ See `docs/PHASE_2_AUTH_QA.md` for the acceptance matrix.
 The employee identity/onboarding workflow is protected by `npm run employees:check` plus lint, TypeScript and production build in GitHub Actions. The gate verifies setup/work-email separation, trusted work-login assignment, fresh-invite resend behavior, guarded password recovery, synchronized Supabase types and the versioned access-lifecycle migrations.
 
 See `docs/PHASE_3_EMPLOYEE_ACCESS_QA.md` for the acceptance matrix.
+
+
+## Phase 4 My Day gate
+
+Phase 4 — My Day & Scrum is protected by `npm run myday:check` plus lint,
+TypeScript and the production build in GitHub Actions. The gate verifies the
+employee sign-in Scrum, previous/carry-over/backlog data, progress history,
+obstacles, break/meeting actions, complete/incomplete sign-off behavior,
+sign-back-in history, cross-midnight active-workday safety and workflow-only
+writes.
+
+Live rollback acceptance tests also verify 100% completion, <100% carry-over,
+duplicate sign-off safety and normal-employee RLS isolation.
+
+See `docs/PHASE_4_MY_DAY_QA.md` for the acceptance matrix.
