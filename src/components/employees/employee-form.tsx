@@ -23,6 +23,7 @@ export function EmployeeForm({
   schedules,
   managers,
   submitLabel,
+  isTestEnvironment = false,
 }: {
   action: FormAction;
   employee?: EmployeeRow | null;
@@ -30,12 +31,16 @@ export function EmployeeForm({
   schedules: ScheduleOption[];
   managers: ManagerOption[];
   submitLabel: string;
+  isTestEnvironment?: boolean;
 }) {
   return (
     <form action={action} className="card">
       <div className="bd">
         {employee ? (
-          <input type="hidden" name="employee_id" value={employee.id} />
+          <>
+            <input type="hidden" name="employee_id" value={employee.id} />
+            <input type="hidden" name="email" value={employee.email} />
+          </>
         ) : null}
 
         <div className="employee-form-grid">
@@ -50,16 +55,68 @@ export function EmployeeForm({
             />
           </label>
 
-          <label className="f">
-            <span>Email *</span>
-            <input
-              name="email"
-              type="email"
-              required
-              defaultValue={employee?.email ?? ""}
-              placeholder="name@emarketselect.com"
-            />
-          </label>
+          {employee ? (
+            <>
+              <label className="f">
+                <span>Current login email</span>
+                <input
+                  type="email"
+                  value={employee.email}
+                  disabled
+                  aria-describedby="employee-login-email-help"
+                />
+                <small id="employee-login-email-help" className="mut">
+                  Change a linked login identity only from System access.
+                </small>
+              </label>
+
+              <label className="f">
+                <span>Setup email *</span>
+                <input
+                  name="personal_email"
+                  type="email"
+                  required
+                  defaultValue={employee.personalEmail ?? employee.email}
+                  placeholder="employee@example.com"
+                />
+                <small className="mut">
+                  Initial onboarding contact retained separately from the work login.
+                </small>
+              </label>
+            </>
+          ) : (
+            <>
+              <label className="f">
+                <span>Setup email *</span>
+                <input
+                  name="personal_email"
+                  type="email"
+                  required
+                  placeholder="employee@example.com"
+                />
+                <small className="mut">
+                  Receives the first EMS account setup invitation.
+                </small>
+              </label>
+
+              <label className="f">
+                <span>
+                  Work login email{isTestEnvironment ? "" : " *"}
+                </span>
+                <input
+                  name="work_email"
+                  type="email"
+                  required={!isTestEnvironment}
+                  placeholder="name@emarketselect.com"
+                />
+                <small className="mut">
+                  {isTestEnvironment
+                    ? "Optional for demo testing. Leave blank to activate with the setup email first, then assign the work login from System access."
+                    : "Required in production and must use @emarketselect.com."}
+                </small>
+              </label>
+            </>
+          )}
 
           <label className="f">
             <span>Full name *</span>
@@ -198,10 +255,10 @@ export function EmployeeForm({
               defaultChecked
             />
             <span>
-              <b>Send login invitation</b>
+              <b>Send account setup invitation</b>
               <small>
-                The employee receives a secure setup link and chooses their own
-                password. No password is shown to the administrator.
+                The employee receives a secure one-time setup link and chooses
+                their own password. The administrator never sees the password.
               </small>
             </span>
           </label>
