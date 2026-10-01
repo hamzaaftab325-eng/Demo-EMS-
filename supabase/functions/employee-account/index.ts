@@ -13,7 +13,7 @@ const allowedOrigins = new Set([
 ]);
 
 const accountSetupRedirect =
-  "https://demo-ems-ten.vercel.app/set-password?mode=invite";
+  "https://demo-ems-ten.vercel.app/set-password";
 
 function corsHeaders(req: Request) {
   const origin = req.headers.get("origin") ?? "";
