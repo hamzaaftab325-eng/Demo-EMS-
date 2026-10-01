@@ -25,6 +25,8 @@ function refreshRequestSurfaces() {
   revalidatePath("/attendance");
   revalidatePath("/live-view");
   revalidatePath("/employees");
+  revalidatePath("/notifications");
+  revalidatePath("/", "layout");
 }
 
 export async function createLeaveRequest(formData: FormData) {
@@ -154,8 +156,32 @@ export async function decideRequest(formData: FormData) {
   refreshRequestSurfaces();
   finish(
     "success",
-    decision === "approved"
-      ? "Request approved."
-      : "Request rejected.",
+    decision === "approved" ? "Request approved." : "Request rejected.",
   );
+}
+
+export async function reassignRequestApprover(formData: FormData) {
+  await requireCurrentProfile();
+  const supabase = await createClient();
+
+  const requestId = textValue(formData, "request_id");
+  const approverId = textValue(formData, "approver_id");
+  const comment = textValue(formData, "comment");
+
+  if (!requestId || !approverId) {
+    finish("error", "Choose a valid approver.");
+  }
+
+  const { error } = await supabase.rpc("request_reassign_approver", {
+    p_request_id: requestId,
+    p_new_approver_id: approverId,
+    p_comment: comment || undefined,
+  });
+
+  if (error) {
+    finish("error", error.message);
+  }
+
+  refreshRequestSurfaces();
+  finish("success", "Approval reassigned successfully.");
 }
