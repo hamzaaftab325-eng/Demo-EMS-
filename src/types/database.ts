@@ -1662,6 +1662,14 @@ export type Database = {
         }
         Returns: undefined
       }
+      request_reassign_approver: {
+        Args: {
+          p_comment?: string
+          p_new_approver_id: string
+          p_request_id: string
+        }
+        Returns: undefined
+      }
       request_submit_leave: {
         Args: {
           p_end_date: string

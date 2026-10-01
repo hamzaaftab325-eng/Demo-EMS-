@@ -14,6 +14,7 @@ type RequestType = Database["public"]["Enums"]["request_type"];
 type RequestStatus = Database["public"]["Enums"]["request_status"];
 type ApprovalStage = Database["public"]["Enums"]["approval_stage"];
 type ApprovalDecision = Database["public"]["Enums"]["approval_decision"];
+type AppRole = Database["public"]["Enums"]["app_role"];
 
 export type RequestApprovalView = {
   id: string;
@@ -65,14 +66,25 @@ export type LeaveTypeOption = {
 export type LeaveBalanceView = LeaveTypeOption & {
   ledgerBalance: number;
   usedDays: number;
+  remainingDays: number | null;
+  entitlementSource: "allocation" | "default" | "unlimited";
+};
+
+export type ApproverCandidate = {
+  id: string;
+  fullName: string;
+  role: AppRole;
+  manageableEmployeeIds: string[];
 };
 
 export type RequestCenter = {
   canSubmit: boolean;
   myRequests: RequestView[];
   pendingApprovals: RequestView[];
+  adminPendingRequests: RequestView[];
   leaveTypes: LeaveTypeOption[];
   leaveBalances: LeaveBalanceView[];
+  approverCandidates: ApproverCandidate[];
 };
 
 function dateInZone(timeZone: string) {
@@ -105,10 +117,6 @@ async function loadRequestViews(
   const supabase = await createClient();
   const requestIds = requestRows.map((row) => row.id);
 
-  let leaveDetails: LeaveDetailDbRow[] = [];
-  let scheduleDetails: ScheduleDetailDbRow[] = [];
-  let approvals: ApprovalDbRow[] = [];
-
   const [leaveResult, scheduleResult, approvalsResult] = await Promise.all([
     supabase
       .from("leave_request_details")
@@ -129,9 +137,9 @@ async function loadRequestViews(
     throw new Error("Could not load request details.");
   }
 
-  leaveDetails = leaveResult.data ?? [];
-  scheduleDetails = scheduleResult.data ?? [];
-  approvals = approvalsResult.data ?? [];
+  const leaveDetails = (leaveResult.data ?? []) as LeaveDetailDbRow[];
+  const scheduleDetails = (scheduleResult.data ?? []) as ScheduleDetailDbRow[];
+  const approvals = (approvalsResult.data ?? []) as ApprovalDbRow[];
 
   const profileIds = Array.from(
     new Set([
@@ -151,9 +159,7 @@ async function loadRequestViews(
 
   const peopleMap = new Map((people ?? []).map((row) => [row.id, row]));
   const leaveTypeMap = new Map(leaveTypes.map((row) => [row.id, row]));
-  const leaveMap = new Map(
-    leaveDetails.map((row) => [row.request_id, row]),
-  );
+  const leaveMap = new Map(leaveDetails.map((row) => [row.request_id, row]));
   const scheduleMap = new Map(
     scheduleDetails.map((row) => [row.request_id, row]),
   );
@@ -218,6 +224,23 @@ async function loadRequestViews(
       } satisfies RequestView;
     })
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+}
+
+function managerAncestors(
+  employeeId: string,
+  managerByEmployee: Map<string, string>,
+) {
+  const result = new Set<string>();
+  let cursor = employeeId;
+
+  for (let depth = 0; depth < 20; depth += 1) {
+    const managerId = managerByEmployee.get(cursor);
+    if (!managerId || result.has(managerId)) break;
+    result.add(managerId);
+    cursor = managerId;
+  }
+
+  return result;
 }
 
 export async function getRequestCenter(
@@ -309,24 +332,101 @@ export async function getRequestCenter(
     approvalRequests = data ?? [];
   }
 
+  let adminRequests: RequestDbRow[] = [];
+  let approverCandidates: ApproverCandidate[] = [];
+
+  if (profile.role === "super_admin") {
+    const [requestsResult, candidatesResult, linesResult] = await Promise.all([
+      supabase
+        .from("requests")
+        .select("*")
+        .in("status", ["pending_manager", "pending_final"])
+        .order("created_at", { ascending: false })
+        .limit(100),
+      supabase
+        .from("profiles")
+        .select(
+          "id, full_name, role, is_test_account, is_active, employment_status",
+        )
+        .eq("is_active", true)
+        .neq("employment_status", "deactivated")
+        .in("role", ["manager", "director", "super_admin"])
+        .order("full_name"),
+      supabase
+        .from("reporting_lines")
+        .select(
+          "employee_id, manager_id, effective_from, effective_to, is_primary",
+        )
+        .eq("is_primary", true)
+        .lte("effective_from", today)
+        .or("effective_to.is.null,effective_to.gte." + today),
+    ]);
+
+    if (requestsResult.error || candidatesResult.error || linesResult.error) {
+      throw new Error("Could not load the organization approval queue.");
+    }
+
+    adminRequests = requestsResult.data ?? [];
+
+    const managerByEmployee = new Map(
+      (linesResult.data ?? []).map((row) => [row.employee_id, row.manager_id]),
+    );
+    const employeeIds = Array.from(
+      new Set(adminRequests.map((row) => row.employee_id)),
+    );
+
+    approverCandidates = (candidatesResult.data ?? [])
+      .filter((row) => row.is_test_account === profile.is_test_account)
+      .map((row) => {
+        const manageableEmployeeIds =
+          row.role === "super_admin"
+            ? employeeIds
+            : employeeIds.filter((employeeId) =>
+                managerAncestors(employeeId, managerByEmployee).has(row.id),
+              );
+
+        return {
+          id: row.id,
+          fullName: row.full_name,
+          role: row.role,
+          manageableEmployeeIds,
+        };
+      });
+  }
+
   const allRows = uniqueRequests([
     ...(ownResult.data ?? []),
     ...approvalRequests,
+    ...adminRequests,
   ]);
   const allViews = await loadRequestViews(profile, allRows, leaveTypes);
 
   const myIds = new Set((ownResult.data ?? []).map((row) => row.id));
   const approvalIds = new Set(approvalRequests.map((row) => row.id));
+  const adminIds = new Set(adminRequests.map((row) => row.id));
   const ledger = (ledgerResult.data ?? []) as LedgerDbRow[];
+
+  const year = today.slice(0, 4);
+  const yearStart = year + "-01-01";
+  const yearEnd = year + "-12-31";
 
   const leaveBalances = leaveTypes.map((leaveType) => {
     const rows = ledger.filter(
-      (row) => row.leave_type_id === leaveType.id,
+      (row) =>
+        row.leave_type_id === leaveType.id &&
+        row.effective_date >= yearStart &&
+        row.effective_date <= yearEnd,
     );
-    const ledgerBalance = rows.reduce(
+    const allocationRows = rows.filter(
+      (row) => row.transaction_type === "allocation",
+    );
+    const allocations = allocationRows.reduce(
       (sum, row) => sum + Number(row.days),
       0,
     );
+    const delta = rows
+      .filter((row) => row.transaction_type !== "allocation")
+      .reduce((sum, row) => sum + Number(row.days), 0);
     const usedDays = rows
       .filter((row) => row.transaction_type === "approved_leave")
       .reduce(
@@ -334,10 +434,20 @@ export async function getRequestCenter(
         0,
       );
 
+    const base =
+      allocationRows.length > 0 ? allocations : leaveType.defaultAnnualDays;
+
     return {
       ...leaveType,
-      ledgerBalance,
+      ledgerBalance: allocations + delta,
       usedDays,
+      remainingDays: base == null ? null : base + delta,
+      entitlementSource:
+        allocationRows.length > 0
+          ? ("allocation" as const)
+          : leaveType.defaultAnnualDays == null
+            ? ("unlimited" as const)
+            : ("default" as const),
     };
   });
 
@@ -345,8 +455,10 @@ export async function getRequestCenter(
     canSubmit: Boolean(managerResult.data?.manager_id),
     myRequests: allViews.filter((row) => myIds.has(row.id)),
     pendingApprovals: allViews.filter((row) => approvalIds.has(row.id)),
+    adminPendingRequests: allViews.filter((row) => adminIds.has(row.id)),
     leaveTypes,
     leaveBalances,
+    approverCandidates,
   };
 }
 

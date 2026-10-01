@@ -152,12 +152,11 @@ function mapRow(
   schedule: ScheduleRow | null,
   intervals: IntervalRow[],
   corrected: boolean,
-  approvedLeave: boolean,
   now: Date,
 ): TeamAttendanceRow {
-  const onApprovedLeave = approvedLeave && !workday?.first_sign_in_at;
   const presenceStatus: LiveDisplayStatus =
-    employee.employmentStatus === "on_leave" || onApprovedLeave
+    employee.employmentStatus === "on_leave" ||
+    workday?.attendance_status === "on_leave"
       ? "on_leave"
       : (presence?.status ?? "offline");
 
@@ -180,7 +179,7 @@ function mapRow(
     workdayId: workday?.id ?? null,
     workdayStatus: workday?.status ?? null,
     attendanceStatus:
-      employee.employmentStatus === "on_leave" || onApprovedLeave
+      employee.employmentStatus === "on_leave"
         ? "on_leave"
         : (workday?.attendance_status ?? null),
     firstSignInAt: workday?.first_sign_in_at ?? null,
@@ -202,15 +201,16 @@ function mapRow(
     coreStartTime: schedule?.core_start_time ?? null,
     coreEndTime: schedule?.core_end_time ?? null,
     graceMinutes: schedule?.grace_minutes ?? 0,
-    expectedMissing: onApprovedLeave
-      ? false
-      : expectedMissingNow(
-          employee,
-          workDate,
-          workday,
-          schedule,
-          now,
-        ),
+    expectedMissing:
+      workday?.attendance_status === "on_leave"
+        ? false
+        : expectedMissingNow(
+            employee,
+            workDate,
+            workday,
+            schedule,
+            now,
+          ),
     intervals: intervals.map((interval) => ({
       id: interval.id,
       intervalType: interval.interval_type,
@@ -263,15 +263,10 @@ export async function getLiveTeam(
   );
   const dates = Array.from(new Set(dateByEmployee.values()));
 
-  const sortedDates = [...dates].sort();
-  const minDate = sortedDates[0];
-  const maxDate = sortedDates[sortedDates.length - 1];
-
   const [
     { data: workdays, error: workdaysError },
     { data: presence, error: presenceError },
     { data: schedules, error: schedulesError },
-    { data: approvedLeaves, error: approvedLeavesError },
   ] = await Promise.all([
     supabase
       .from("workdays")
@@ -291,22 +286,9 @@ export async function getLiveTeam(
       .select(
         "id, name, schedule_type, daily_target_minutes, start_time, end_time, core_start_time, core_end_time, grace_minutes, timezone, is_active, created_at, updated_at",
       ),
-    supabase
-      .from("requests")
-      .select("employee_id, start_date, end_date")
-      .eq("request_type", "leave")
-      .eq("status", "approved")
-      .in("employee_id", ids)
-      .lte("start_date", maxDate)
-      .gte("end_date", minDate),
   ]);
 
-  if (
-    workdaysError ||
-    presenceError ||
-    schedulesError ||
-    approvedLeavesError
-  ) {
+  if (workdaysError || presenceError || schedulesError) {
     throw new Error("Could not load live attendance.");
   }
 
@@ -348,18 +330,6 @@ export async function getLiveTeam(
   const scheduleMap = new Map(
     (schedules ?? []).map((row) => [row.id, row]),
   );
-  const approvedLeaveEmployees = new Set(
-    (approvedLeaves ?? [])
-      .filter((row) => {
-        const date = dateByEmployee.get(row.employee_id);
-        return Boolean(
-          date &&
-            row.start_date <= date &&
-            row.end_date >= date,
-        );
-      })
-      .map((row) => row.employee_id),
-  );
   const correctedWorkdays = new Set(
     (corrections ?? []).map((row) => row.workday_id),
   );
@@ -385,7 +355,6 @@ export async function getLiveTeam(
         schedule,
         workday ? intervalMap.get(workday.id) ?? [] : [],
         workday ? correctedWorkdays.has(workday.id) : false,
-        approvedLeaveEmployees.has(employee.id),
         now,
       );
     })
@@ -408,7 +377,6 @@ export async function getAttendanceTeam(
   const [
     { data: workdays, error: workdaysError },
     { data: schedules, error: schedulesError },
-    { data: approvedLeaves, error: approvedLeavesError },
   ] = await Promise.all([
     supabase
       .from("workdays")
@@ -422,17 +390,9 @@ export async function getAttendanceTeam(
       .select(
         "id, name, schedule_type, daily_target_minutes, start_time, end_time, core_start_time, core_end_time, grace_minutes, timezone, is_active, created_at, updated_at",
       ),
-    supabase
-      .from("requests")
-      .select("employee_id")
-      .eq("request_type", "leave")
-      .eq("status", "approved")
-      .in("employee_id", ids)
-      .lte("start_date", workDate)
-      .gte("end_date", workDate),
   ]);
 
-  if (workdaysError || schedulesError || approvedLeavesError) {
+  if (workdaysError || schedulesError) {
     throw new Error("Could not load attendance.");
   }
 
@@ -453,9 +413,6 @@ export async function getAttendanceTeam(
   const scheduleMap = new Map(
     (schedules ?? []).map((row) => [row.id, row]),
   );
-  const approvedLeaveEmployees = new Set(
-    (approvedLeaves ?? []).map((row) => row.employee_id),
-  );
   const correctedWorkdays = new Set(
     (corrections ?? []).map((row) => row.workday_id),
   );
@@ -474,7 +431,6 @@ export async function getAttendanceTeam(
         schedule,
         [],
         workday ? correctedWorkdays.has(workday.id) : false,
-        approvedLeaveEmployees.has(employee.id),
         now,
       );
     })

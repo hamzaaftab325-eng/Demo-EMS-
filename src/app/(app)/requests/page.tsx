@@ -5,6 +5,7 @@ import {
 import { requireCurrentProfile } from "@/lib/auth/current-profile";
 import {
   getRequestCenter,
+  type ApproverCandidate,
   type RequestView,
 } from "@/lib/data/requests";
 import type { Database } from "@/types/database";
@@ -13,6 +14,7 @@ import {
   createLeaveRequest,
   createScheduleRequest,
   decideRequest,
+  reassignRequestApprover,
 } from "./actions";
 
 type RequestStatus = Database["public"]["Enums"]["request_status"];
@@ -125,6 +127,30 @@ function dateRange(request: RequestView) {
   );
 }
 
+function validReassignmentCandidates(
+  request: RequestView,
+  candidates: ApproverCandidate[],
+) {
+  const current = request.approvals.find(
+    (approval) =>
+      approval.stage === request.currentStage &&
+      approval.decision === "pending",
+  );
+
+  return candidates.filter((candidate) => {
+    if (candidate.id === current?.approverId) return false;
+
+    if (request.currentStage === "final") {
+      return candidate.role === "super_admin";
+    }
+
+    return (
+      candidate.role === "super_admin" ||
+      candidate.manageableEmployeeIds.includes(request.employeeId)
+    );
+  });
+}
+
 function RequestTrail({ request }: { request: RequestView }) {
   if (request.approvals.length === 0) return null;
 
@@ -167,12 +193,7 @@ export default async function RequestsPage({
   const error = single(params.error);
   const center = await getRequestCenter(current);
   const today = dateInZone(current.timezone);
-  const trackedBalances = center.leaveBalances.filter(
-    (row) =>
-      row.defaultAnnualDays != null ||
-      row.usedDays !== 0 ||
-      row.ledgerBalance !== 0,
-  );
+  const trackedBalances = center.leaveBalances;
 
   return (
     <>
@@ -195,7 +216,9 @@ export default async function RequestsPage({
             <div className="hd">
               <div>
                 <h2>Leave request</h2>
-                <p className="mut">Working days exclude weekends and holidays.</p>
+                <p className="mut">
+                  Working days exclude weekends and configured holidays.
+                </p>
               </div>
             </div>
             <form action={createLeaveRequest} className="bd request-form">
@@ -318,7 +341,7 @@ export default async function RequestsPage({
               <div>
                 <h2>Hour change</h2>
                 <p className="mut">
-                  Temporary working-hour change for a specific date.
+                  Temporary working-hour change for one specific date.
                 </p>
               </div>
             </div>
@@ -371,16 +394,23 @@ export default async function RequestsPage({
       )}
 
       {trackedBalances.length > 0 ? (
-        <section className="request-balance-grid" aria-label="Leave ledger">
+        <section className="request-balance-grid" aria-label="Leave balance">
           {trackedBalances.map((balance) => (
             <div className="card request-balance-card" key={balance.id}>
               <div className="bd">
                 <span className="mut">{balance.name}</span>
-                <strong>{balance.usedDays} used</strong>
+                <strong>
+                  {balance.remainingDays == null
+                    ? "No quota configured"
+                    : balance.remainingDays + " remaining"}
+                </strong>
                 <small className="mut">
-                  {balance.defaultAnnualDays == null
-                    ? "Annual allocation not configured"
-                    : balance.defaultAnnualDays + " day annual default"}
+                  {balance.usedDays} used this year
+                  {balance.entitlementSource === "allocation"
+                    ? " · ledger allocation"
+                    : balance.entitlementSource === "default"
+                      ? " · annual default"
+                      : " · balance not enforced"}
                 </small>
               </div>
             </div>
@@ -473,6 +503,127 @@ export default async function RequestsPage({
         </div>
       </section>
 
+      {current.role === "super_admin" ? (
+        <section className="request-section">
+          <div className="request-section-head">
+            <div>
+              <h2>Organization approval queue</h2>
+              <p className="mut">
+                Reassign pending approvals when a manager changes or becomes unavailable.
+              </p>
+            </div>
+            <span className="request-count">
+              {center.adminPendingRequests.length}
+            </span>
+          </div>
+
+          <div className="request-list">
+            {center.adminPendingRequests.map((request) => {
+              const pending = request.approvals.find(
+                (approval) =>
+                  approval.stage === request.currentStage &&
+                  approval.decision === "pending",
+              );
+              const candidates = validReassignmentCandidates(
+                request,
+                center.approverCandidates,
+              );
+
+              return (
+                <article
+                  className="card request-item"
+                  key={"admin-" + request.id}
+                >
+                  <div className="bd">
+                    <div className="request-item-head">
+                      <div>
+                        <span className="request-kicker">
+                          Request #{request.requestNumber} ·{" "}
+                          {typeLabel(request.requestType)}
+                        </span>
+                        <h3>{request.employeeName}</h3>
+                        <p className="mut">
+                          {dateRange(request)} · Current approver:{" "}
+                          {pending?.approverName ?? "Not assigned"}
+                        </p>
+                      </div>
+                      <StatusPill
+                        label={statusLabel(request.status)}
+                        tone={statusTone(request.status)}
+                      />
+                    </div>
+
+                    <div className="request-detail-row">
+                      <strong>{requestDetail(request)}</strong>
+                      {request.reason ? <span>{request.reason}</span> : null}
+                    </div>
+
+                    {candidates.length > 0 ? (
+                      <form
+                        action={reassignRequestApprover}
+                        className="request-reassign-form"
+                      >
+                        <input
+                          type="hidden"
+                          name="request_id"
+                          value={request.id}
+                        />
+                        <label className="f">
+                          <span>
+                            Reassign{" "}
+                            {request.currentStage === "final"
+                              ? "final"
+                              : "manager"}{" "}
+                            approval
+                          </span>
+                          <select name="approver_id" defaultValue="" required>
+                            <option value="" disabled>
+                              Select approver
+                            </option>
+                            {candidates.map((candidate) => (
+                              <option value={candidate.id} key={candidate.id}>
+                                {candidate.fullName} ·{" "}
+                                {candidate.role.replace("_", " ")}
+                              </option>
+                            ))}
+                          </select>
+                        </label>
+                        <label className="f">
+                          <span>Reason</span>
+                          <input
+                            name="comment"
+                            type="text"
+                            placeholder="Manager unavailable, reporting change, escalation…"
+                          />
+                        </label>
+                        <button className="btn" type="submit">
+                          Reassign
+                        </button>
+                      </form>
+                    ) : (
+                      <p className="mut">
+                        No alternate valid approver is currently available.
+                      </p>
+                    )}
+                  </div>
+                </article>
+              );
+            })}
+
+            {center.adminPendingRequests.length === 0 ? (
+              <div className="card">
+                <div className="bd request-empty">
+                  <strong>No organization requests are pending.</strong>
+                  <span className="mut">
+                    Escalation and reassignment controls appear here when needed.
+                  </span>
+                </div>
+              </div>
+            ) : null}
+          </div>
+        </section>
+      ) : null}
+
       <section className="request-section">
         <div className="request-section-head">
           <div>
@@ -552,10 +703,10 @@ export default async function RequestsPage({
       </section>
 
       <p className="preview-note">
-        Manager approval is always required. When company settings require a
-        second stage, an active Super Admin gives final approval. Approved leave
-        writes exactly one leave-ledger entry; approved schedule changes update
-        schedule history exactly once.
+        Approved requests are immutable. Pending requests may be cancelled.
+        Approved leave becomes the canonical attendance record and blocks
+        sign-in for those working dates. Schedule changes cannot overwrite a
+        workday after work has started.
       </p>
     </>
   );
