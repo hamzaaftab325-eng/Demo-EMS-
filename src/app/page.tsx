@@ -9,8 +9,16 @@ export default async function HomePage() {
     redirect("/login");
   }
 
-  if (!profile || !profile.is_active || profile.employment_status === "deactivated") {
+  if (!profile) {
     redirect("/access-denied?reason=profile");
+  }
+
+  if (!profile.is_active || profile.employment_status === "deactivated") {
+    redirect("/access-denied?reason=inactive");
+  }
+
+  if (!profile.auth_activated_at) {
+    redirect("/signup");
   }
 
   redirect(homeForRole(profile.role));
