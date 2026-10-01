@@ -71,6 +71,35 @@ requireText(
   "Current EMS login email",
   "Forgot-password identity wording",
 );
+requireText(
+  forgot,
+  'employee-password-recovery',
+  "Forgot-password guarded recovery endpoint",
+);
+rejectText(
+  forgot,
+  "resetPasswordForEmail",
+  "Forgot-password form must not bypass EMS activation state",
+);
+
+const recovery = read(
+  "supabase/functions/employee-password-recovery/index.ts",
+);
+requireText(
+  recovery,
+  "auth_activated_at",
+  "Password recovery activation guard",
+);
+requireText(
+  recovery,
+  "resetPasswordForEmail",
+  "Password recovery delivery",
+);
+requireText(
+  recovery,
+  "If an active EMS account exists",
+  "Password recovery anti-enumeration response",
+);
 
 const login = read("src/app/login/page.tsx");
 requireText(login, "Work / login email", "Login identity wording");
