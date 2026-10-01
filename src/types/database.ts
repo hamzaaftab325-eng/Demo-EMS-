@@ -1782,7 +1782,6 @@ export type Database = {
         }
         Returns: undefined
       }
-      service_get_resend_api_key: { Args: never; Returns: string }
     }
     Enums: {
       app_role: "employee" | "manager" | "director" | "super_admin"
