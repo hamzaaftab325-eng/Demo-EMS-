@@ -290,3 +290,12 @@ Live rollback acceptance tests also verify 100% completion, <100% carry-over,
 duplicate sign-off safety and normal-employee RLS isolation.
 
 See `docs/PHASE_4_MY_DAY_QA.md` for the acceptance matrix.
+
+
+## Phase 5 attendance gate
+
+Phase 5 — Attendance & Live Presence is protected by `npm run attendance:check` plus lint, TypeScript and the production build in GitHub Actions. The gate covers heartbeat/presence transitions, attendance calculations, schedule lateness rules, auto sign-off, cross-midnight Live View continuity, Super Admin corrections, scoped exports and the Phase 5 hardening migrations.
+
+Live rollback acceptance tests cover Active/Idle/Away, break and meeting math, fixed/flexible/flexible-core schedules, automatic sign-off, manager subtree isolation, attendance correction authorization, stale presence rollover and open overnight workdays.
+
+See `docs/PHASE_5_ATTENDANCE_QA.md` for the acceptance matrix.
