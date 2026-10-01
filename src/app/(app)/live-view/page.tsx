@@ -293,18 +293,20 @@ export default async function LiveViewPage({
       </div>
 
       <div className="legend attendance-legend">
-        <span>
-          <i className="dot" style={{ background: "var(--active)" }} />
-          Active work
-        </span>
-        <span>
-          <i className="dot" style={{ background: "var(--break)" }} />
-          Break
-        </span>
-        <span>
-          <i className="dot" style={{ background: "var(--meeting)" }} />
-          Meeting
-        </span>
+        {[
+          ["Active", "var(--active)"],
+          ["Idle", "var(--idle)"],
+          ["Away", "var(--away)"],
+          ["Break", "var(--break)"],
+          ["Meeting", "var(--meeting)"],
+          ["Offline", "var(--offline)"],
+          ["Signed off", "var(--ended)"],
+        ].map(([label, color]) => (
+          <span key={label}>
+            <i className="dot" style={{ background: color }} />
+            {label}
+          </span>
+        ))}
       </div>
 
       <p className="preview-note">
