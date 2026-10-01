@@ -196,3 +196,22 @@ Demo addresses under `@example.test` can link correctly but cannot receive real 
 Branded invite and password-recovery templates are stored in `supabase/templates/`. Hosted Supabase projects require those templates to be pasted into Authentication → Email Templates; see `docs/SUPABASE_AUTH_EMAILS.md`.
 
 The built-in Supabase mailer is for demo testing and only sends to addresses authorized as members of the Supabase organization. Production employee delivery requires custom SMTP.
+
+
+### Phase 6 completion hardening
+
+Phase 6 now treats approved leave and approved schedules as canonical operational data rather than display-only overlays:
+
+- Approved leave creates or updates attendance workdays as on_leave with zero scheduled minutes.
+- Employees cannot sign in on an approved leave working date.
+- Leave cannot be approved after work has already started for an affected date.
+- Configured annual/default leave entitlements and ledger allocations are enforced; a NULL entitlement remains an explicit no-quota policy.
+- Cross-year leave writes idempotent ledger segments by year.
+- Hour-change requests are database-enforced as single-date requests.
+- Approved schedule changes update unstarted workdays and cannot rewrite dates where work already started.
+- Demo/test and production employee data are isolated at the RLS helper layer.
+- Super Admin can reassign stuck manager/final approvals with notifications and audit evidence.
+- Request-generated schedules remain selectable when editing the employee who currently uses them.
+- A notification center exposes request workflow notifications and read/unread state.
+- Phase 6 table grants are reduced to the browser permissions actually required.
+- Exposed request RPCs are SECURITY INVOKER wrappers over private privileged implementations.
