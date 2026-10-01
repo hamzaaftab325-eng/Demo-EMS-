@@ -73,6 +73,20 @@ export default async function EmployeeDetailPage({
       {invite === "already_active" ? (
         <div className="form-success">This employee login is already active.</div>
       ) : null}
+      {invite === "demo_address" ? (
+        <div className="form-error">
+          The employee profile was saved, but @example.test addresses cannot
+          receive email. Use a deliverable company mailbox to test activation.
+        </div>
+      ) : null}
+      {invite === "demo_email_not_authorized" ? (
+        <div className="form-error">
+          The employee profile was saved, but Supabase&apos;s demo email sender
+          only delivers to addresses that are members of this Supabase
+          organization. Add the test mailbox to the Supabase team or configure
+          custom SMTP.
+        </div>
+      ) : null}
       {invite === "failed" ? (
         <div className="form-error">
           The employee profile was saved, but the setup email could not be

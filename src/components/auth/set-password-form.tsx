@@ -121,28 +121,48 @@ export function SetPasswordForm() {
     }
 
     const {
-      data: { session },
-    } = await supabase.auth.getSession();
+      data: { user },
+    } = await supabase.auth.getUser();
 
-    if (!session?.access_token) {
+    if (!user) {
       setMessage("Your session expired. Open the setup email again.");
       setState("invalid");
       return;
     }
 
-    const { error: activationError } = await supabase.functions.invoke(
-      "employee-account",
-      {
-        body: { action: "activate" },
-        headers: {
-          Authorization: `Bearer ${session.access_token}`,
-        },
-      },
-    );
+    let activated = false;
 
-    if (activationError) {
+    for (let attempt = 0; attempt < 5; attempt += 1) {
+      const { data: profile, error: profileError } = await supabase
+        .from("profiles")
+        .select("auth_activated_at, is_active, employment_status")
+        .eq("auth_user_id", user.id)
+        .maybeSingle();
+
+      if (
+        profileError ||
+        !profile ||
+        !profile.is_active ||
+        profile.employment_status === "deactivated"
+      ) {
+        setMessage(
+          "Your EMS employee profile is unavailable. Contact an administrator.",
+        );
+        setState("invalid");
+        return;
+      }
+
+      if (profile.auth_activated_at) {
+        activated = true;
+        break;
+      }
+
+      await new Promise((resolve) => setTimeout(resolve, 200));
+    }
+
+    if (!activated) {
       setMessage(
-        "Your password was saved, but EMS could not finish activation. Submit again to retry.",
+        "Your password was saved, but account activation did not complete. Contact an administrator before signing in.",
       );
       setState("ready");
       return;

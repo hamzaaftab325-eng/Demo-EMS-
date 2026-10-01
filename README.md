@@ -173,3 +173,10 @@ Employee onboarding is now part of the Super Admin employee workflow:
 The Supabase service-role credential is used only inside the Supabase Edge Function and is never exposed to Vercel browser code or any `NEXT_PUBLIC_*` variable.
 
 Demo addresses under `@example.test` can link correctly but cannot receive real email. Use a deliverable company mailbox when testing invitation delivery.
+
+
+### Professional Auth email templates
+
+Branded invite and password-recovery templates are stored in `supabase/templates/`. Hosted Supabase projects require those templates to be pasted into Authentication → Email Templates; see `docs/SUPABASE_AUTH_EMAILS.md`.
+
+The built-in Supabase mailer is for demo testing and only sends to addresses authorized as members of the Supabase organization. Production employee delivery requires custom SMTP.
