@@ -62,12 +62,14 @@ requireText(shell, "unreadNotifications", "Unread notification badge");
 
 const core = read("supabase/migrations/20261001063943_phase6_requests_approvals_core.sql");
 for (const marker of [
-  "create table public.requests",
-  "create table public.leave_request_details",
-  "create table public.schedule_change_details",
-  "create table public.request_approvals",
-  "create table public.leave_ledger",
-  "create table public.notifications",
+  "alter table public.requests",
+  "alter table public.schedule_change_details",
+  "public.requests%rowtype",
+  "public.leave_request_details",
+  "public.schedule_change_details",
+  "public.request_approvals",
+  "public.leave_ledger",
+  "public.notifications",
   "request_submit_leave",
   "request_submit_schedule_change",
   "request_cancel",
