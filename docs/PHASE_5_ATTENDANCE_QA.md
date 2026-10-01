@@ -94,3 +94,19 @@ GitHub Actions runs this gate before lint, TypeScript and the production build.
 **Phase 5 — Attendance & Live Presence: COMPLETE for the EMS demo.**
 
 The Phase 5 implementation is live, permission-scoped, rollover-safe, correction-safe and regression-gated.
+
+
+## Timeline acceptance
+
+The employee My Day timeline and manager Live View timeline render persisted presence history from `presence_events`.
+
+Required visible states:
+- Active
+- Idle
+- Away
+- Break
+- Meeting
+- Offline
+- Signed off
+
+Active, Idle, and Away are derived from EMS-tab activity and heartbeat thresholds. Break and Meeting are explicit work intervals. Offline and Signed off represent non-active workday states. Historical gaps that predate presence-event tracking are not fabricated.
