@@ -69,7 +69,7 @@ export async function login(formData: FormData) {
   }
 
   if (!profile.auth_activated_at) {
-    redirect("/set-password");
+    redirect("/signup");
   }
 
   redirect(requestedNext ?? homeForRole(profile.role));
