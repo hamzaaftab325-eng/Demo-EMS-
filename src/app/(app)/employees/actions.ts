@@ -26,6 +26,40 @@ function fail(path: string, message: string): never {
   redirect(`${path}?${params.toString()}`);
 }
 
+function createEmployeeErrorMessage(message: string) {
+  const clean = message.replace(/^.*?:\s*/, "").trim();
+
+  if (clean.includes("Employee code already exists")) {
+    return "Employee code already exists. Use a unique employee code.";
+  }
+
+  if (clean.includes("Email is already assigned")) {
+    return "Email is already assigned to another employee.";
+  }
+
+  if (clean.includes("Select an active department")) {
+    return "Select an active department.";
+  }
+
+  if (clean.includes("Select an active manager")) {
+    return "Select an active manager in the same EMS environment.";
+  }
+
+  if (clean.includes("Select an active work schedule")) {
+    return "Select an active work schedule.";
+  }
+
+  if (clean.includes("profiles_allowed_email")) {
+    return "Use a valid email address for this employee.";
+  }
+
+  if (clean.includes("Super Admin")) {
+    return "Only an active Super Admin can create employees.";
+  }
+
+  return clean || "Could not create employee. Review the form and try again.";
+}
+
 const ACCOUNT_SETUP_URL =
   process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") ??
   "https://demo-ems-ten.vercel.app";
@@ -133,7 +167,9 @@ export async function createEmployee(formData: FormData) {
   if (error || !employeeId) {
     fail(
       "/employees/new",
-      "Could not create employee. Check the employee code, email and hierarchy.",
+      createEmployeeErrorMessage(
+        error?.message ?? "Employee creation did not return an employee ID.",
+      ),
     );
   }
 
