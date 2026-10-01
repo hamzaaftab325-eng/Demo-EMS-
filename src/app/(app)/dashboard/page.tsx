@@ -3,6 +3,7 @@ import { PageHead } from "@/components/shared/prototype";
 import { RealtimeRefresh } from "@/components/realtime/realtime-refresh";
 import { requireRole } from "@/lib/auth/current-profile";
 import { formatDuration, getLiveTeam } from "@/lib/data/attendance";
+import { getPendingApprovalCount } from "@/lib/data/requests";
 import { TEAM_ROLES } from "@/lib/navigation";
 
 const statusMeta = {
@@ -29,7 +30,10 @@ function timeNow(timeZone: string) {
 
 export default async function DashboardPage() {
   const current = await requireRole(TEAM_ROLES);
-  const team = await getLiveTeam(current);
+  const [team, pendingRequestCount] = await Promise.all([
+    getLiveTeam(current),
+    getPendingApprovalCount(current),
+  ]);
 
   const count = (status: keyof typeof statusMeta) =>
     team.filter((row) => row.presenceStatus === status).length;
@@ -158,10 +162,17 @@ export default async function DashboardPage() {
               <h2>Requests waiting for you</h2>
             </div>
             <div className="bd">
-              <div className="phase-value">—</div>
+              <div className="phase-value">{pendingRequestCount}</div>
               <p className="mut phase-copy">
-                Requests and approvals become live in Phase 6.
+                {pendingRequestCount === 1
+                  ? "One request is waiting for your decision."
+                  : pendingRequestCount > 1
+                    ? pendingRequestCount + " requests are waiting for your decision."
+                    : "No requests are waiting for your decision."}
               </p>
+              <Link href="/requests#approvals" className="mut dashboard-link">
+                Review requests
+              </Link>
             </div>
           </div>
 

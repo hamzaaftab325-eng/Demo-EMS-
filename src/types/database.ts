@@ -943,6 +943,7 @@ export type Database = {
       }
       requests: {
         Row: {
+          cancellation_reason: string | null
           cancelled_at: string | null
           completed_at: string | null
           created_at: string
@@ -959,6 +960,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          cancellation_reason?: string | null
           cancelled_at?: string | null
           completed_at?: string | null
           created_at?: string
@@ -975,6 +977,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          cancellation_reason?: string | null
           cancelled_at?: string | null
           completed_at?: string | null
           created_at?: string
@@ -1054,24 +1057,37 @@ export type Database = {
       }
       schedule_change_details: {
         Row: {
+          applied_at: string | null
+          applied_schedule_id: string | null
           is_permanent: boolean
           new_end_time: string
           new_start_time: string
           request_id: string
         }
         Insert: {
+          applied_at?: string | null
+          applied_schedule_id?: string | null
           is_permanent?: boolean
           new_end_time: string
           new_start_time: string
           request_id: string
         }
         Update: {
+          applied_at?: string | null
+          applied_schedule_id?: string | null
           is_permanent?: boolean
           new_end_time?: string
           new_start_time?: string
           request_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "schedule_change_details_applied_schedule_id_fkey"
+            columns: ["applied_schedule_id"]
+            isOneToOne: false
+            referencedRelation: "work_schedules"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "schedule_change_details_request_id_fkey"
             columns: ["request_id"]
@@ -1633,6 +1649,39 @@ export type Database = {
       presence_heartbeat: {
         Args: { p_last_activity_at?: string }
         Returns: Json
+      }
+      request_cancel: {
+        Args: { p_reason?: string; p_request_id: string }
+        Returns: undefined
+      }
+      request_decide: {
+        Args: {
+          p_comment?: string
+          p_decision: Database["public"]["Enums"]["approval_decision"]
+          p_request_id: string
+        }
+        Returns: undefined
+      }
+      request_submit_leave: {
+        Args: {
+          p_end_date: string
+          p_leave_type_id: string
+          p_reason?: string
+          p_start_date: string
+        }
+        Returns: string
+      }
+      request_submit_schedule_change: {
+        Args: {
+          p_end_date: string
+          p_is_permanent?: boolean
+          p_new_end_time: string
+          p_new_start_time: string
+          p_reason?: string
+          p_request_type: Database["public"]["Enums"]["request_type"]
+          p_start_date: string
+        }
+        Returns: string
       }
     }
     Enums: {
