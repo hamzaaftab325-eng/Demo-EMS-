@@ -376,3 +376,19 @@ label.f input,label.f select{width:100%}
 .btn.danger:hover{background:color-mix(in srgb,var(--red) 8%,var(--surface))}
 @media(max-width:1050px){.request-create-grid{grid-template-columns:1fr 1fr}.request-balance-grid{grid-template-columns:1fr 1fr}}
 @media(max-width:720px){.request-create-grid,.request-balance-grid{grid-template-columns:1fr}.request-two-col{grid-template-columns:1fr}.request-item-head,.request-section-head{align-items:flex-start}.request-decision-form{grid-template-columns:1fr}.request-decision-actions{justify-content:flex-start}.request-cancel-form{align-items:stretch;flex-direction:column}.request-cancel-form input{min-width:0;width:100%}}
+
+
+/* Phase 6 completion — notifications and escalation */
+.notification-bell{position:relative;width:36px;height:36px;display:inline-flex;align-items:center;justify-content:center;border:1px solid var(--border);border-radius:8px;background:var(--surface);text-decoration:none;color:var(--fg)}
+.notification-bell:hover{background:var(--muted)}
+.notification-bell span{position:absolute;top:-6px;right:-7px;min-width:18px;height:18px;padding:0 4px;border-radius:999px;background:var(--red);color:#fff;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;border:2px solid var(--surface)}
+.notification-list{display:grid;gap:12px}
+.notification-item{transition:border-color .15s ease,background .15s ease}
+.notification-item-unread{border-color:color-mix(in srgb,var(--cyan) 45%,var(--border));background:color-mix(in srgb,var(--cyan) 4%,var(--surface))}
+.notification-item-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px}
+.notification-item-head h2{font-size:15px}
+.notification-item-head p{margin:3px 0 0;font-size:12px}
+.notification-message{margin:12px 0;color:var(--fg)}
+.notification-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.request-reassign-form{display:grid;grid-template-columns:minmax(180px,1fr) minmax(220px,1.4fr) auto;gap:10px;align-items:end;padding-top:4px}
+@media(max-width:760px){.request-reassign-form{grid-template-columns:1fr}.notification-item-head{align-items:flex-start}}
