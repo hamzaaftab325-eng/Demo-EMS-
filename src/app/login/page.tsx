@@ -6,7 +6,7 @@ import { login } from "@/app/auth/actions";
 const errorMessages: Record<string, string> = {
   configuration:
     "EMS authentication is not configured on this deployment yet. Add the Supabase public environment variables in Vercel.",
-  invalid_credentials: "The email or password is incorrect.",
+  invalid_credentials: "The login email or password is incorrect.",
   missing_credentials: "Enter both your email and password.",
   not_authorized:
     "This account is not linked to an active EMS employee profile.",
@@ -44,7 +44,7 @@ export default async function LoginPage({
             <p className="login-eyebrow">Employee Management System</p>
             <h1 id="login-title">Welcome back</h1>
             <p className="login-copy">
-              Sign in with your approved EMS account to continue.
+              Sign in with your current EMS login email and password.
             </p>
           </div>
         </div>
@@ -56,8 +56,9 @@ export default async function LoginPage({
 
           <h2>Sign in</h2>
           <p className="mut login-help">
-            Sign in with your employee account. New employees activate access
-            from the invitation sent by a Super Admin. Public sign-up is disabled.
+            New employees create their password from the account setup
+            invitation. After a work email is assigned, use that work email
+            with the same password. Public sign-up is disabled.
           </p>
 
           {message ? (
@@ -70,7 +71,7 @@ export default async function LoginPage({
             {nextPath ? <input type="hidden" name="next" value={nextPath} /> : null}
 
             <label className="f">
-              <span>Email</span>
+              <span>Work / login email</span>
               <input
                 type="email"
                 name="email"

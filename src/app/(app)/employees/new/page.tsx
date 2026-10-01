@@ -23,7 +23,7 @@ export default async function NewEmployeePage({
     <>
       <PageHead
         title="Add employee"
-        subtitle="Create the employee, reporting line, schedule and secure login invitation in one flow."
+        subtitle="Create the employee, organization assignment and secure account setup in one trusted flow."
       />
 
       {error ? <div className="form-error">{error}</div> : null}
@@ -34,13 +34,13 @@ export default async function NewEmployeePage({
         schedules={options.schedules}
         managers={options.managers}
         submitLabel="Create employee"
+        isTestEnvironment={current.is_test_account}
       />
 
       <p className="preview-note">
-        The EMS profile is created first. If invitation is enabled, Supabase
-        emails the employee a one-time account setup link. Demo profiles may
-        use a real authorized test mailbox for delivery testing. The employee
-        chooses their own password; public sign-up remains disabled.
+        {current.is_test_account
+          ? "Demo flow: use a real setup mailbox for the first invitation. The employee chooses their password, then a Super Admin can assign the final work login email from System access without changing that password."
+          : "Production flow: the employee work email is the login identity and receives the secure account setup invitation. The employee chooses their own password; public sign-up remains disabled."}
       </p>
     </>
   );

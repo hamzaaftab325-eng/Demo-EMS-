@@ -34,6 +34,9 @@ jobs:
       - name: Authentication verification
         run: npm run auth:check
 
+      - name: Employee access verification
+        run: npm run employees:check
+
       - name: Lint
         run: npm run lint
 

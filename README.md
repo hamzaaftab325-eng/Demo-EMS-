@@ -22,18 +22,17 @@ Phase 1 established the production Next.js foundation. Phase 2 added real Supaba
 - Demo vs production profile separation
 - Static employee/dashboard organization data removed
 - Generated TypeScript types synchronized with the live schema
+- Separate setup/personal email and work/login identity lifecycle
+- Super Admin-only work-email assignment after activation for demo onboarding
+- Linked Auth login identities cannot drift through ordinary profile edits
+- Account-setup resend is a fresh invite, never a password-recovery email
+- Password recovery is limited to already-activated active EMS accounts
 
-## Demo organization
+## Demo data
 
-- Rayan Enzo — Super Admin / CEO — `demo.admin@example.test`
-- Faisal Ahmed Siddiqui — Director — `director1@example.test`
-- Danish Mehmood — Manager — `manager1@example.test`
-- Hamza Aftab — UX Designer & Front-End Developer — `employee1@example.test`
-- Ghulam — UX Designer & Front-End Developer — `employee2@example.test`
-- Haider Razaq — Jr. Full-Stack Developer — `employee3@example.test`
-- Rida-e-Ayesha — UX Designer & Front-End Coordinator — `employee4@example.test`
-
-Rayan Enzo currently has a Supabase Auth identity. Other demo profiles are linked automatically when matching Auth users are created; no duplicate employee records are needed.
+The demo environment is intentionally mutable during onboarding and regression
+QA. Do not treat README sample employee rows as authoritative. The live
+`public.profiles` data and the EMS Employees screen are the source of truth.
 
 ## Stack
 
@@ -58,10 +57,14 @@ Only the Supabase URL and publishable key belong in browser-visible environment 
 ## Authentication and authorization
 
 - Public sign-up is intentionally disabled.
-- Super Admin creates the employee profile first and can send a secure invitation from EMS.
-- The invite creates/links the Supabase Auth identity by employee email.
-- The employee opens the one-time link, chooses their own password, and EMS records account activation.
-- Existing employees can use Forgot Password to request a new setup link.
+- Super Admin creates the employee profile first and controls account setup from System access.
+- Setup/personal contact and current login identity are stored as separate concepts.
+- The invite creates/links the Supabase Auth identity to the employee's current login email.
+- The employee opens the one-time account-setup link, chooses their own password, and EMS records activation.
+- If setup is incomplete, Super Admin can resend a fresh account-setup invitation; EMS does not misuse password recovery for onboarding.
+- In the demo flow, Super Admin can assign a work login email after activation; the Auth identity and EMS profile change together and the employee keeps the same password.
+- Linked login identities cannot be edited through the ordinary employee profile form.
+- Forgot Password is available only for an already-activated active EMS account and sends recovery to the current login email.
 - Users must be linked to an active `public.profiles` row before application access is granted.
 - Application roles come from `public.profiles.role`, never user-editable Auth metadata.
 - RLS is the final database authorization layer.
@@ -177,27 +180,28 @@ The My Day timeline uses the employee's target work duration as its visible wind
 
 ## Employee account onboarding
 
-Employee onboarding is now part of the Super Admin employee workflow:
+Employee onboarding is part of the trusted Super Admin workflow:
 
 1. Super Admin creates the employee with role, department, manager and schedule.
-2. EMS persists the employee profile before any Auth identity is created.
-3. When **Send login invitation** is enabled, the JWT-protected `employee-account` Edge Function verifies the caller is Super Admin.
-4. Supabase Auth sends the employee a one-time invitation email.
-5. The Auth-user trigger links that identity to the existing employee profile by email; no duplicate employee profile is created.
-6. The employee opens the link at `/set-password` and chooses a password. The Auth-user trigger records `auth_activated_at` only after a password is actually set.
-7. Unactivated accounts are redirected to password setup instead of entering the EMS application.
-8. If setup is incomplete, Super Admin can **Resend setup link**. Existing users also have **Forgot password** on the login page.
+2. EMS stores a setup/personal contact separately from the current login identity.
+3. EMS sends a one-time **account setup invitation** through the protected `employee-account` Edge Function.
+4. The employee opens the latest invite and creates their own password.
+5. Database authorization remains blocked until password setup records `auth_activated_at`.
+6. If setup is incomplete, **Resend account setup** replaces the incomplete Auth identity and sends a fresh Invite-user email. It does not send a Reset-password email.
+7. For the demo workflow, Super Admin can then use **System access → Assign work login email**. Supabase Auth and `profiles.email` change together while the employee's password remains unchanged.
+8. After work-email assignment, the employee signs in with the new work/login email plus the same password.
+9. Ordinary employee editing cannot change a linked login email; identity changes are restricted to System access.
+10. **Forgot password** uses the current work/login email and is accepted only for an activated, active EMS account. Unactivated users must use account setup instead.
 
-The Supabase privileged secret is used only inside the Supabase Edge Function and is never exposed to Vercel browser code or any `NEXT_PUBLIC_*` variable. The function prefers Supabase's modern secret key environment and retains the legacy service-role variable only as a compatibility fallback.
+The restricted `employee_access_contacts` table stores setup-contact/work-email metadata. Only Super Admin can read it through authenticated RLS; normal employees and reporting managers do not receive those private contact rows.
 
-Demo addresses under `@example.test` can link correctly but cannot receive real email. Demo/test profiles may use another real mailbox for delivery testing; production profiles remain restricted to `@emarketselect.com`.
-
+Mailbox provisioning itself is outside EMS. Production work mailboxes must exist in the company's email platform before they can reliably receive Auth/recovery mail.
 
 ### Professional Auth email templates
 
-Branded invite and password-recovery templates are stored in `supabase/templates/`. Hosted Supabase projects require those templates to be pasted into Authentication → Email Templates; see `docs/SUPABASE_AUTH_EMAILS.md`.
+Branded invite and password-recovery templates are stored in `supabase/templates/`. Hosted Supabase projects require those templates to be applied in Authentication → Email Templates; see `docs/SUPABASE_AUTH_EMAILS.md`.
 
-The built-in Supabase mailer is for demo testing and only sends to addresses authorized as members of the Supabase organization. Production employee delivery requires custom SMTP.
+The current demo uses custom SMTP. The repository never stores the SMTP credential. Before production, replace the development sender with a verified company sending domain.
 
 
 ### Phase 6 completion hardening
@@ -236,8 +240,9 @@ The finalization gate requires a clean lint, TypeScript check, production build,
 ## Phase 1 foundation gate
 
 The Phase 1 application foundation is protected by `npm run foundation:check`
-plus lint, TypeScript and production build in GitHub Actions. The canonical
-29-table Supabase schema is captured under `supabase/baseline/`, global error
+plus lint, TypeScript and production build in GitHub Actions. The original
+29-table foundation snapshot is captured under `supabase/baseline/`; later
+phases extend that schema through versioned migrations. Global error
 handling and internal-app security headers are enabled, and browser/server
 Supabase clients remain separated.
 
@@ -252,3 +257,10 @@ activation is now part of the database authorization identity: an invite
 session cannot access operational EMS data until password setup completes.
 
 See `docs/PHASE_2_AUTH_QA.md` for the acceptance matrix.
+
+
+## Phase 3 employee access gate
+
+The employee identity/onboarding workflow is protected by `npm run employees:check` plus lint, TypeScript and production build in GitHub Actions. The gate verifies setup/work-email separation, trusted work-login assignment, fresh-invite resend behavior, guarded password recovery, synchronized Supabase types and the versioned access-lifecycle migrations.
+
+See `docs/PHASE_3_EMPLOYEE_ACCESS_QA.md` for the acceptance matrix.

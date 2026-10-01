@@ -17,8 +17,10 @@ export function ForgotPasswordForm() {
 
     const supabase = createClient();
 
-    await supabase.auth.resetPasswordForEmail(email.trim().toLowerCase(), {
-      redirectTo: `${window.location.origin}/set-password`,
+    await supabase.functions.invoke("employee-password-recovery", {
+      body: {
+        email: email.trim().toLowerCase(),
+      },
     });
 
     setPending(false);
@@ -67,7 +69,7 @@ export function ForgotPasswordForm() {
           ) : (
             <form onSubmit={submit}>
               <label className="f">
-                <span>Employee email</span>
+                <span>Current EMS login email</span>
                 <input
                   type="email"
                   autoComplete="email"

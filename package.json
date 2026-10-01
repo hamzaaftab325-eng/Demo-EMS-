@@ -12,7 +12,8 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "foundation:check": "node scripts/verify-foundation.mjs",
-    "auth:check": "node scripts/verify-auth.mjs"
+    "auth:check": "node scripts/verify-auth.mjs",
+    "employees:check": "node scripts/verify-employees.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "0.12.7",

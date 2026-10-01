@@ -10,6 +10,9 @@ export type EmployeeRow = {
   id: string;
   employeeCode: string;
   email: string;
+  personalEmail: string | null;
+  workEmail: string | null;
+  workEmailAssignedAt: string | null;
   fullName: string;
   jobTitle: string;
   departmentId: string;
@@ -87,6 +90,7 @@ export async function getEmployeeDirectory(
     { data: reportingLines, error: reportingError },
     { data: scheduleAssignments, error: scheduleError },
     { data: schedules, error: schedulesError },
+    { data: accessContacts, error: accessContactsError },
   ] = await Promise.all([
     supabase.from("departments").select("id, name, code"),
     supabase
@@ -102,13 +106,18 @@ export async function getEmployeeDirectory(
       .order("effective_from", { ascending: false })
       .order("created_at", { ascending: false }),
     supabase.from("work_schedules").select("id, name"),
+    supabase
+      .from("employee_access_contacts")
+      .select("employee_id, personal_email, work_email, work_email_assigned_at")
+      .in("employee_id", ids),
   ]);
 
   if (
     departmentsError ||
     reportingError ||
     scheduleError ||
-    schedulesError
+    schedulesError ||
+    accessContactsError
   ) {
     throw new Error("Could not load organization relationships.");
   }
@@ -117,6 +126,9 @@ export async function getEmployeeDirectory(
     (departments ?? []).map((row) => [row.id, row.name]),
   );
   const profileMap = new Map(scoped.map((row) => [row.id, row]));
+  const accessContactMap = new Map(
+    (accessContacts ?? []).map((row) => [row.employee_id, row]),
+  );
   const managerMap = new Map(
     (reportingLines ?? []).map((row) => [row.employee_id, row.manager_id]),
   );
@@ -149,11 +161,15 @@ export async function getEmployeeDirectory(
     const managerId = managerMap.get(row.id) ?? null;
     const scheduleId = scheduleAssignmentMap.get(row.id) ?? null;
     const manager = managerId ? profileMap.get(managerId) : null;
+    const access = accessContactMap.get(row.id);
 
     return {
       id: row.id,
       employeeCode: row.employee_code,
       email: row.email,
+      personalEmail: access?.personal_email ?? null,
+      workEmail: access?.work_email ?? null,
+      workEmailAssignedAt: access?.work_email_assigned_at ?? null,
       fullName: row.full_name,
       jobTitle: row.job_title,
       departmentId: row.department_id,

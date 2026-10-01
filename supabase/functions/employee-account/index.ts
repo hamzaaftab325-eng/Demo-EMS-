@@ -6,6 +6,14 @@ type InviteBody = {
   employee_id: string;
 };
 
+type AssignWorkEmailBody = {
+  action: "assign_work_email";
+  employee_id: string;
+  work_email: string;
+};
+
+type RequestBody = InviteBody | AssignWorkEmailBody;
+
 const allowedOrigins = new Set([
   "https://demo-ems-ten.vercel.app",
   "http://localhost:3000",
@@ -72,6 +80,14 @@ function emailFailureStatus(message: string) {
   }
 
   return "failed";
+}
+
+function normalizedEmail(value: string) {
+  return value.trim().toLowerCase();
+}
+
+function validEmail(value: string) {
+  return /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(value);
 }
 
 Deno.serve(async (req: Request) => {
@@ -143,16 +159,16 @@ Deno.serve(async (req: Request) => {
     return json(req, 403, { error: "Super Admin access required." });
   }
 
-  let body: InviteBody;
+  let body: RequestBody;
 
   try {
-    body = (await req.json()) as InviteBody;
+    body = (await req.json()) as RequestBody;
   } catch {
     return json(req, 400, { error: "Invalid request body." });
   }
 
-  if (body.action !== "invite" || !body.employee_id) {
-    return json(req, 400, { error: "Invalid employee invitation request." });
+  if (!body.employee_id) {
+    return json(req, 400, { error: "Employee ID is required." });
   }
 
   const { data: target, error: targetError } = await adminClient
@@ -171,8 +187,134 @@ Deno.serve(async (req: Request) => {
     target.is_test_account !== caller.is_test_account
   ) {
     return json(req, 404, {
-      error: "Employee is not available for invitation.",
+      error: "Employee is not available for this access action.",
     });
+  }
+
+  async function writeFailureAudit(
+    action: string,
+    status: string,
+    message: string,
+  ) {
+    await adminClient.from("audit_logs").insert({
+      actor_id: caller.id,
+      action,
+      entity_type: "profile",
+      entity_id: target.id,
+      after_data: {
+        email: target.email,
+        status,
+      },
+      reason: message.slice(0, 500),
+    });
+  }
+
+  if (body.action === "assign_work_email") {
+    if (!target.auth_user_id || !target.auth_activated_at) {
+      return json(req, 200, {
+        ok: false,
+        status: "requires_activation",
+        message:
+          "The employee must complete account setup before a work login email can be assigned.",
+      });
+    }
+
+    const workEmail = normalizedEmail(body.work_email ?? "");
+
+    if (!validEmail(workEmail)) {
+      return json(req, 200, {
+        ok: false,
+        status: "invalid_work_email",
+        message: "Enter a valid work email.",
+      });
+    }
+
+    if (
+      !target.is_test_account &&
+      !/^[^@\s]+@emarketselect\.com$/i.test(workEmail)
+    ) {
+      return json(req, 200, {
+        ok: false,
+        status: "invalid_work_email",
+        message: "Production work email must use @emarketselect.com.",
+      });
+    }
+
+    const { data: accessContact } = await adminClient
+      .from("employee_access_contacts")
+      .select("work_email")
+      .eq("employee_id", target.id)
+      .maybeSingle();
+
+    if (
+      normalizedEmail(target.email) === workEmail &&
+      normalizedEmail(accessContact?.work_email ?? "") === workEmail
+    ) {
+      return json(req, 200, {
+        ok: true,
+        status: "work_email_already_assigned",
+      });
+    }
+
+    const previousLoginEmail = target.email;
+
+    const { error: authUpdateError } =
+      await adminClient.auth.admin.updateUserById(target.auth_user_id, {
+        email: workEmail,
+        email_confirm: true,
+      });
+
+    if (authUpdateError) {
+      await writeFailureAudit(
+        "employee_work_email_assignment_failed",
+        "auth_update_failed",
+        authUpdateError.message,
+      );
+
+      return json(req, 200, {
+        ok: false,
+        status: "work_email_failed",
+        message: authUpdateError.message,
+      });
+    }
+
+    const { error: profileUpdateError } = await adminClient.rpc(
+      "service_assign_employee_work_email",
+      {
+        p_employee_id: target.id,
+        p_work_email: workEmail,
+        p_actor_id: caller.id,
+      },
+    );
+
+    if (profileUpdateError) {
+      await adminClient.auth.admin.updateUserById(target.auth_user_id, {
+        email: previousLoginEmail,
+        email_confirm: true,
+      });
+
+      await writeFailureAudit(
+        "employee_work_email_assignment_failed",
+        "profile_update_failed",
+        profileUpdateError.message,
+      );
+
+      return json(req, 200, {
+        ok: false,
+        status: "work_email_failed",
+        message:
+          "The work email could not be assigned. The previous login email was restored.",
+      });
+    }
+
+    return json(req, 200, {
+      ok: true,
+      status: "work_email_assigned",
+    });
+  }
+
+  if (body.action !== "invite") {
+    return json(req, 400, { error: "Unsupported employee access action." });
   }
 
   if (target.auth_activated_at) {
@@ -187,81 +329,30 @@ Deno.serve(async (req: Request) => {
       ok: false,
       status: "demo_address",
       message:
-        "The @example.test address is intentionally non-deliverable. Use an approved real mailbox to test email delivery.",
+        "The @example.test address is intentionally non-deliverable. Use a deliverable setup mailbox for email testing.",
     });
   }
 
-  async function writeFailureAudit(status: string, message: string) {
-    await adminClient.from("audit_logs").insert({
-      actor_id: caller.id,
-      action: "employee_invitation_failed",
-      entity_type: "profile",
-      entity_id: target.id,
-      after_data: {
-        email: target.email,
-        status,
-      },
-      reason: message.slice(0, 500),
-    });
-  }
-
-  async function writeAudit(action: string, invitedAt: string) {
-    await adminClient.from("audit_logs").insert({
-      actor_id: caller.id,
-      action,
-      entity_type: "profile",
-      entity_id: target.id,
-      before_data: {
-        auth_user_id: target.auth_user_id,
-        auth_invited_at: target.auth_invited_at,
-      },
-      after_data: {
-        email: target.email,
-        auth_invited_at: invitedAt,
-      },
-      reason: "Employee account setup email",
-    });
-  }
+  const wasResend = Boolean(target.auth_user_id);
 
   if (target.auth_user_id) {
-    const { error: resendError } =
-      await publicClient.auth.resetPasswordForEmail(target.email, {
-        redirectTo: accountSetupRedirect,
-      });
+    const { error: deleteError } =
+      await adminClient.auth.admin.deleteUser(target.auth_user_id);
 
-    if (resendError) {
-      const status = emailFailureStatus(resendError.message);
-      await writeFailureAudit(status, resendError.message);
+    if (deleteError) {
+      await writeFailureAudit(
+        "employee_invitation_failed",
+        "replace_invite_failed",
+        deleteError.message,
+      );
 
       return json(req, 200, {
         ok: false,
-        status,
-        message: resendError.message,
+        status: "failed",
+        message:
+          "The previous incomplete setup session could not be replaced. Try again.",
       });
     }
-
-    const invitedAt = new Date().toISOString();
-
-    const { error: updateError } = await adminClient
-      .from("profiles")
-      .update({
-        auth_invited_at: invitedAt,
-        updated_at: invitedAt,
-      })
-      .eq("id", target.id);
-
-    if (updateError) {
-      return json(req, 500, {
-        error: "Setup email was sent, but EMS could not record its timestamp.",
-      });
-    }
-
-    await writeAudit("employee_setup_link_resent", invitedAt);
-
-    return json(req, 200, {
-      ok: true,
-      status: "resent",
-    });
   }
 
   const { data: inviteData, error: inviteError } =
@@ -279,7 +370,7 @@ Deno.serve(async (req: Request) => {
     const message = inviteError?.message ?? "Invitation could not be sent.";
     const status = emailFailureStatus(message);
 
-    await writeFailureAudit(status, message);
+    await writeFailureAudit("employee_invitation_failed", status, message);
 
     return json(req, 200, {
       ok: false,
@@ -307,10 +398,29 @@ Deno.serve(async (req: Request) => {
     });
   }
 
-  await writeAudit("employee_invitation_sent", invitedAt);
+  await adminClient.from("audit_logs").insert({
+    actor_id: caller.id,
+    action: wasResend
+      ? "employee_setup_invitation_resent"
+      : "employee_invitation_sent",
+    entity_type: "profile",
+    entity_id: target.id,
+    before_data: {
+      auth_user_id: target.auth_user_id,
+      auth_invited_at: target.auth_invited_at,
+    },
+    after_data: {
+      email: target.email,
+      auth_user_id: inviteData.user.id,
+      auth_invited_at: invitedAt,
+    },
+    reason: wasResend
+      ? "Employee account setup invitation replaced and resent"
+      : "Employee account setup invitation sent",
+  });
 
   return json(req, 200, {
     ok: true,
-    status: "sent",
+    status: wasResend ? "resent" : "sent",
   });
 });
