@@ -231,3 +231,14 @@ Phases 1 through 6 are treated as the stable production foundation before Phase 
 - Phase 6 — Requests & Approvals: complete
 
 The finalization gate requires a clean lint, TypeScript check, production build, successful Vercel deployment, applied Supabase migrations, RLS on exposed tables, and no direct authenticated writes to protected request/ledger tables.
+
+
+## Phase 1 foundation gate
+
+The Phase 1 application foundation is protected by `npm run foundation:check`
+plus lint, TypeScript and production build in GitHub Actions. The canonical
+29-table Supabase schema is captured under `supabase/baseline/`, global error
+handling and internal-app security headers are enabled, and browser/server
+Supabase clients remain separated.
+
+See `docs/PHASE_1_FOUNDATION_QA.md` for the acceptance record.
