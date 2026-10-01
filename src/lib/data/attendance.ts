@@ -264,17 +264,10 @@ export async function getLiveTeam(
   const dates = Array.from(new Set(dateByEmployee.values()));
 
   const [
-    { data: workdays, error: workdaysError },
     { data: presence, error: presenceError },
     { data: schedules, error: schedulesError },
+    { data: todayWorkdays, error: todayWorkdaysError },
   ] = await Promise.all([
-    supabase
-      .from("workdays")
-      .select(
-        "id, employee_id, work_date, schedule_id, timezone, status, attendance_status, first_sign_in_at, final_sign_off_at, gross_minutes, break_minutes, meeting_minutes, net_work_minutes, scheduled_minutes, late_minutes, early_leave_minutes, overtime_minutes, closed_at, calculated_at, notes, created_at, updated_at",
-      )
-      .in("employee_id", ids)
-      .in("work_date", dates),
     supabase
       .from("employee_presence")
       .select(
@@ -286,16 +279,77 @@ export async function getLiveTeam(
       .select(
         "id, name, schedule_type, daily_target_minutes, start_time, end_time, core_start_time, core_end_time, grace_minutes, timezone, is_active, created_at, updated_at",
       ),
+    supabase
+      .from("workdays")
+      .select(
+        "id, employee_id, work_date, schedule_id, timezone, status, attendance_status, first_sign_in_at, final_sign_off_at, gross_minutes, break_minutes, meeting_minutes, net_work_minutes, scheduled_minutes, late_minutes, early_leave_minutes, overtime_minutes, closed_at, calculated_at, notes, created_at, updated_at",
+      )
+      .in("employee_id", ids)
+      .in("work_date", dates),
   ]);
 
-  if (workdaysError || presenceError || schedulesError) {
+  if (presenceError || schedulesError || todayWorkdaysError) {
     throw new Error("Could not load live attendance.");
   }
 
-  const selectedWorkdays = (workdays ?? []).filter(
-    (row) => dateByEmployee.get(row.employee_id) === row.work_date,
+  const presenceRows = presence ?? [];
+  const presenceWorkdayIds = Array.from(
+    new Set(
+      presenceRows
+        .map((row) => row.workday_id)
+        .filter((id): id is string => Boolean(id)),
+    ),
   );
-  const workdayIds = selectedWorkdays.map((row) => row.id);
+
+  const { data: presenceWorkdays, error: presenceWorkdaysError } =
+    presenceWorkdayIds.length
+      ? await supabase
+          .from("workdays")
+          .select(
+            "id, employee_id, work_date, schedule_id, timezone, status, attendance_status, first_sign_in_at, final_sign_off_at, gross_minutes, break_minutes, meeting_minutes, net_work_minutes, scheduled_minutes, late_minutes, early_leave_minutes, overtime_minutes, closed_at, calculated_at, notes, created_at, updated_at",
+          )
+          .in("id", presenceWorkdayIds)
+      : { data: [], error: null };
+
+  if (presenceWorkdaysError) {
+    throw new Error("Could not load active workday continuity.");
+  }
+
+  const allWorkdays = new Map<string, WorkdayRow>();
+  for (const row of [...(todayWorkdays ?? []), ...(presenceWorkdays ?? [])]) {
+    allWorkdays.set(row.id, row);
+  }
+
+  const todayByEmployee = new Map(
+    (todayWorkdays ?? [])
+      .filter((row) => dateByEmployee.get(row.employee_id) === row.work_date)
+      .map((row) => [row.employee_id, row]),
+  );
+  const presenceMap = new Map(
+    presenceRows.map((row) => [row.employee_id, row]),
+  );
+  const selectedByEmployee = new Map<string, WorkdayRow>();
+
+  for (const employee of employees) {
+    const presenceRow = presenceMap.get(employee.id);
+    const presenceWorkday = presenceRow?.workday_id
+      ? allWorkdays.get(presenceRow.workday_id)
+      : undefined;
+    const todayWorkday = todayByEmployee.get(employee.id);
+
+    if (
+      presenceWorkday &&
+      ["working", "on_break", "in_meeting"].includes(presenceWorkday.status)
+    ) {
+      selectedByEmployee.set(employee.id, presenceWorkday);
+    } else if (todayWorkday) {
+      selectedByEmployee.set(employee.id, todayWorkday);
+    }
+  }
+
+  const workdayIds = Array.from(
+    new Set(Array.from(selectedByEmployee.values()).map((row) => row.id)),
+  );
 
   const [
     { data: intervals, error: intervalsError },
@@ -321,12 +375,6 @@ export async function getLiveTeam(
     throw new Error("Could not load live attendance details.");
   }
 
-  const workdayMap = new Map(
-    selectedWorkdays.map((row) => [row.employee_id, row]),
-  );
-  const presenceMap = new Map(
-    (presence ?? []).map((row) => [row.employee_id, row]),
-  );
   const scheduleMap = new Map(
     (schedules ?? []).map((row) => [row.id, row]),
   );
@@ -343,15 +391,25 @@ export async function getLiveTeam(
 
   return employees
     .map((employee) => {
-      const workDate = dateByEmployee.get(employee.id)!;
-      const workday = workdayMap.get(employee.id);
+      const today = dateByEmployee.get(employee.id)!;
+      const workday = selectedByEmployee.get(employee.id);
+      const workDate = workday?.work_date ?? today;
+      const presenceRow = presenceMap.get(employee.id);
+      const livePresence =
+        presenceRow &&
+        (
+          (workday && presenceRow.workday_id === workday.id) ||
+          (!workday && presenceRow.workday_id == null)
+        )
+          ? presenceRow
+          : undefined;
       const schedule = scheduleFor(employee, workday, scheduleMap);
 
       return mapRow(
         employee,
         workDate,
         workday,
-        presenceMap.get(employee.id),
+        livePresence,
         schedule,
         workday ? intervalMap.get(workday.id) ?? [] : [],
         workday ? correctedWorkdays.has(workday.id) : false,
