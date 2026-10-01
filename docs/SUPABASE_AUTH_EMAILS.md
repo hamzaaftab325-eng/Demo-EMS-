@@ -6,7 +6,7 @@ The application-side invitation, activation and recovery flow is implemented in 
 
 Supabase's built-in SMTP service is intended only for testing. It only delivers Auth email to addresses that are members of the Supabase organization team. Addresses under `@example.test` are intentionally non-deliverable.
 
-For a demo email test, use a real `@emarketselect.com` mailbox that is also an authorized member of the Supabase organization, or add the intended test mailbox to the organization team.
+For a demo email test, a demo/test employee may use any syntactically valid real mailbox. The mailbox must also be an authorized member of the Supabase organization when using the built-in sender. Production employees remain restricted to `@emarketselect.com`.
 
 ## Hosted invite template
 

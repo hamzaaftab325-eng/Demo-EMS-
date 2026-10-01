@@ -38,8 +38,9 @@ export default async function NewEmployeePage({
 
       <p className="preview-note">
         The EMS profile is created first. If invitation is enabled, Supabase
-        emails the employee a one-time account setup link. The employee chooses
-        their own password; public sign-up remains disabled.
+        emails the employee a one-time account setup link. Demo profiles may
+        use a real authorized test mailbox for delivery testing. The employee
+        chooses their own password; public sign-up remains disabled.
       </p>
     </>
   );

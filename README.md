@@ -166,13 +166,13 @@ Employee onboarding is now part of the Super Admin employee workflow:
 3. When **Send login invitation** is enabled, the JWT-protected `employee-account` Edge Function verifies the caller is Super Admin.
 4. Supabase Auth sends the employee a one-time invitation email.
 5. The Auth-user trigger links that identity to the existing employee profile by email; no duplicate employee profile is created.
-6. The employee opens the link at `/set-password`, chooses a password, and the Edge Function records `auth_activated_at`.
+6. The employee opens the link at `/set-password` and chooses a password. The Auth-user trigger records `auth_activated_at` only after a password is actually set.
 7. Unactivated accounts are redirected to password setup instead of entering the EMS application.
 8. If setup is incomplete, Super Admin can **Resend setup link**. Existing users also have **Forgot password** on the login page.
 
-The Supabase service-role credential is used only inside the Supabase Edge Function and is never exposed to Vercel browser code or any `NEXT_PUBLIC_*` variable.
+The Supabase privileged secret is used only inside the Supabase Edge Function and is never exposed to Vercel browser code or any `NEXT_PUBLIC_*` variable. The function prefers Supabase's modern secret key environment and retains the legacy service-role variable only as a compatibility fallback.
 
-Demo addresses under `@example.test` can link correctly but cannot receive real email. Use a deliverable company mailbox when testing invitation delivery.
+Demo addresses under `@example.test` can link correctly but cannot receive real email. Demo/test profiles may use another real mailbox for delivery testing; production profiles remain restricted to `@emarketselect.com`.
 
 
 ### Professional Auth email templates
