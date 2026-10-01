@@ -12,7 +12,16 @@ type AssignWorkEmailBody = {
   work_email: string;
 };
 
-type RequestBody = InviteBody | AssignWorkEmailBody;
+type DeleteDemoEmployeeBody = {
+  action: "delete_demo_employee";
+  employee_id: string;
+  reason: string;
+};
+
+type RequestBody =
+  | InviteBody
+  | AssignWorkEmailBody
+  | DeleteDemoEmployeeBody;
 
 const allowedOrigins = new Set([
   "https://demo-ems-ten.vercel.app",
@@ -66,7 +75,9 @@ function emailFailureStatus(message: string) {
 
   if (
     normalized.includes("email address not authorized") ||
-    normalized.includes("not authorized")
+    normalized.includes("not authorized") ||
+    normalized.includes("you can only send testing emails to your own email address") ||
+    normalized.includes("verify a domain")
   ) {
     return "demo_email_not_authorized";
   }
@@ -206,6 +217,99 @@ Deno.serve(async (req: Request) => {
         status,
       },
       reason: message.slice(0, 500),
+    });
+  }
+
+  if (body.action === "delete_demo_employee") {
+    const reason = body.reason?.trim() ?? "";
+
+    if (!reason) {
+      return json(req, 200, {
+        ok: false,
+        status: "delete_failed",
+        message: "A deletion reason is required.",
+      });
+    }
+
+    if (!target.is_test_account) {
+      return json(req, 200, {
+        ok: false,
+        status: "delete_not_allowed",
+        message:
+          "Permanent deletion is available only for demo/test employees. Deactivate production employees instead.",
+      });
+    }
+
+    if (target.id === caller.id) {
+      return json(req, 200, {
+        ok: false,
+        status: "delete_not_allowed",
+        message: "You cannot delete your own Super Admin account.",
+      });
+    }
+
+    const previousAuthEmail = target.email;
+    const tombstoneEmail =
+      "deleted+" + target.id.replaceAll("-", "") + "@example.test";
+    let authTombstoned = false;
+
+    if (target.auth_user_id) {
+      const { error: authTombstoneError } =
+        await adminClient.auth.admin.updateUserById(target.auth_user_id, {
+          email: tombstoneEmail,
+          email_confirm: true,
+        });
+
+      if (authTombstoneError) {
+        await writeFailureAudit(
+          "employee_delete_failed",
+          "auth_tombstone_failed",
+          authTombstoneError.message,
+        );
+
+        return json(req, 200, {
+          ok: false,
+          status: "delete_failed",
+          message: "The employee Auth identity could not be released for reuse.",
+        });
+      }
+
+      authTombstoned = true;
+    }
+
+    const { error: archiveError } = await adminClient.rpc(
+      "service_archive_demo_employee",
+      {
+        p_employee_id: target.id,
+        p_actor_id: caller.id,
+        p_reason: reason,
+      },
+    );
+
+    if (archiveError) {
+      if (authTombstoned && target.auth_user_id) {
+        await adminClient.auth.admin.updateUserById(target.auth_user_id, {
+          email: previousAuthEmail,
+          email_confirm: true,
+        });
+      }
+
+      await writeFailureAudit(
+        "employee_delete_failed",
+        "archive_failed",
+        archiveError.message,
+      );
+
+      return json(req, 200, {
+        ok: false,
+        status: "delete_failed",
+        message: archiveError.message,
+      });
+    }
+
+    return json(req, 200, {
+      ok: true,
+      status: "deleted",
     });
   }
 

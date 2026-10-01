@@ -3,6 +3,8 @@ import { PageHead, StatusPill } from "@/components/shared/prototype";
 import { EmployeeForm } from "@/components/employees/employee-form";
 import {
   assignEmployeeWorkEmail,
+  deactivateEmployee,
+  deleteDemoEmployee,
   sendEmployeeInvite,
   updateEmployee,
 } from "@/app/(app)/employees/actions";
@@ -65,6 +67,11 @@ export default async function EmployeeDetailPage({
       {single(query.updated) ? (
         <div className="form-success">Employee updated successfully.</div>
       ) : null}
+      {single(query.deactivated) ? (
+        <div className="form-success">
+          Employee deactivated. Existing history is preserved and EMS access is blocked.
+        </div>
+      ) : null}
       {invite === "sent" ? (
         <div className="form-success">
           Account setup invitation sent. The employee can open the email and
@@ -99,9 +106,9 @@ export default async function EmployeeDetailPage({
       ) : null}
       {invite === "demo_email_not_authorized" ? (
         <div className="form-error">
-          The employee profile was saved, but the configured email provider
-          rejected this recipient. Check the SMTP sender or use a permitted test
-          mailbox.
+          The employee profile was saved, but Resend test mode rejected this
+          recipient. With onboarding@resend.dev, send demo invitations only to
+          the email address connected to your Resend account.
         </div>
       ) : null}
       {invite === "email_rate_limited" ? (
@@ -192,7 +199,7 @@ export default async function EmployeeDetailPage({
                   }
                 >
                   {employee.authActivatedAt
-                    ? employee.workEmail || !current.is_test_account
+                    ? employee.workEmailAssignedAt || !current.is_test_account
                       ? "Login active"
                       : "Setup complete · work email pending"
                     : employee.authLinked
@@ -203,7 +210,7 @@ export default async function EmployeeDetailPage({
 
               <p className="mut employee-access-copy">
                 {employee.authActivatedAt
-                  ? employee.workEmail || !current.is_test_account
+                  ? employee.workEmailAssignedAt || !current.is_test_account
                     ? "The employee can sign in with the current work/login email and the password they created."
                     : "The employee created their password. Assign the final work login email below; the password will remain unchanged."
                   : employee.authLinked
@@ -219,7 +226,13 @@ export default async function EmployeeDetailPage({
                     <dt>Setup email</dt>
                     <dd>{employee.personalEmail ?? employee.email}</dd>
                     <dt>Work login</dt>
-                    <dd>{employee.workEmail ?? "Not assigned yet"}</dd>
+                    <dd>
+                      {employee.workEmail
+                        ? employee.workEmailAssignedAt
+                          ? employee.workEmail
+                          : `${employee.workEmail} (pending)`
+                        : "Not assigned yet"}
+                    </dd>
                   </>
                 ) : null}
               </dl>
@@ -286,6 +299,45 @@ export default async function EmployeeDetailPage({
               ) : null}
             </div>
           </div>
+
+          {canEdit && employee.id !== current.id ? (
+            <div className="card employee-danger-zone">
+              <div className="hd"><h2>Employee controls</h2></div>
+              <div className="bd employee-control-stack">
+                {employee.employmentStatus !== "deactivated" ? (
+                  <form action={deactivateEmployee} className="employee-control-form">
+                    <input type="hidden" name="employee_id" value={employee.id} />
+                    <label className="f">
+                      <span>Deactivate employee</span>
+                      <textarea name="reason" rows={2} required placeholder="Reason for deactivation" />
+                      <small className="mut">Blocks EMS access but keeps the employee and all history.</small>
+                    </label>
+                    <button className="btn" type="submit">Deactivate employee</button>
+                  </form>
+                ) : null}
+
+                {current.is_test_account ? (
+                  <form action={deleteDemoEmployee} className="employee-control-form employee-delete-form">
+                    <input type="hidden" name="employee_id" value={employee.id} />
+                    <input type="hidden" name="employee_code" value={employee.employeeCode} />
+                    <label className="f">
+                      <span>Delete demo employee</span>
+                      <textarea name="reason" rows={2} required placeholder="Reason for deletion" />
+                    </label>
+                    <label className="f">
+                      <span>Type <b>{employee.employeeCode}</b> to confirm</span>
+                      <input type="text" name="confirmation" required autoComplete="off" placeholder={employee.employeeCode} />
+                      <small className="mut">
+                        Removes the employee from the active directory, archives the original identity,
+                        preserves historical EMS records, and releases the setup email and employee code for reuse.
+                      </small>
+                    </label>
+                    <button className="btn danger" type="submit">Delete demo employee</button>
+                  </form>
+                ) : null}
+              </div>
+            </div>
+          ) : null}
         </div>
       </div>
     </>

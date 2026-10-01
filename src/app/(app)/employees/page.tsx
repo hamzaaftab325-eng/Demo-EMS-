@@ -1,7 +1,10 @@
 import Link from "next/link";
 import { requireRole } from "@/lib/auth/current-profile";
 import { TEAM_ROLES, roleLabel } from "@/lib/navigation";
-import { getEmployeeDirectory } from "@/lib/data/organization";
+import {
+  getDeletedEmployeeArchive,
+  getEmployeeDirectory,
+} from "@/lib/data/organization";
 import { Avatar, PageHead, StatusPill } from "@/components/shared/prototype";
 
 function initials(name: string) {
@@ -29,7 +32,10 @@ export default async function EmployeesPage({
   const role = single(params.role) ?? "";
   const status = single(params.status) ?? "";
 
-  const employees = await getEmployeeDirectory(current);
+  const [employees, deletedEmployees] = await Promise.all([
+    getEmployeeDirectory(current),
+    getDeletedEmployeeArchive(current),
+  ]);
   const departments = Array.from(
     new Set(employees.map((employee) => employee.department)),
   ).sort();
@@ -67,6 +73,12 @@ export default async function EmployeesPage({
           ) : undefined
         }
       />
+
+      {single(params.deleted) ? (
+        <div className="form-success">
+          Demo employee deleted and stored in the deleted employee archive.
+        </div>
+      ) : null}
 
       <form className="filters" action="/employees">
         <input
@@ -182,6 +194,55 @@ export default async function EmployeesPage({
         {filtered.length} of {employees.length} accessible employee profiles.
         Demo and production profiles are isolated from each other.
       </p>
+
+      {current.role === "super_admin" && deletedEmployees.length > 0 ? (
+        <div className="card tbl" style={{ marginTop: 20 }}>
+          <div className="hd">
+            <div>
+              <h2>Deleted employees</h2>
+              <p className="mut">
+                Archived demo employees are kept for audit, while their original
+                email and employee code are released for reuse.
+              </p>
+            </div>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>Employee</th>
+                <th>Role</th>
+                <th>Setup email</th>
+                <th>Work email</th>
+                <th>Deleted</th>
+                <th>Reason</th>
+              </tr>
+            </thead>
+            <tbody>
+              {deletedEmployees.map((employee) => (
+                <tr key={employee.id}>
+                  <td>
+                    <b>{employee.fullName}</b>
+                    <small className="mut" style={{ display: "block" }}>
+                      {employee.employeeCode}
+                    </small>
+                  </td>
+                  <td>{roleLabel(employee.role)}</td>
+                  <td>{employee.setupEmail ?? employee.loginEmail}</td>
+                  <td>{employee.workEmail ?? "—"}</td>
+                  <td>
+                    {new Date(employee.deletedAt).toLocaleString("en-US", {
+                      timeZone: current.timezone,
+                      dateStyle: "medium",
+                      timeStyle: "short",
+                    })}
+                  </td>
+                  <td>{employee.deletionReason}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : null}
     </>
   );
 }

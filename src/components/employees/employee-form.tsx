@@ -101,7 +101,7 @@ export function EmployeeForm({
 
               <label className="f">
                 <span>
-                  Work login email{isTestEnvironment ? "" : " *"}
+                  {isTestEnvironment ? "Planned work login email" : "Work login email *"}
                 </span>
                 <input
                   name="work_email"
@@ -111,7 +111,7 @@ export function EmployeeForm({
                 />
                 <small className="mut">
                   {isTestEnvironment
-                    ? "Optional for demo testing. Leave blank to activate with the setup email first, then assign the work login from System access."
+                    ? "Optional for demo testing. The setup invitation always goes to the setup email. If entered, this work email stays pending until you assign it from System access after password setup."
                     : "Required in production and must use @emarketselect.com."}
                 </small>
               </label>

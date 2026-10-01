@@ -162,7 +162,9 @@ export async function createEmployee(formData: FormData) {
   const employeeCode = textValue(formData, "employee_code");
   const personalEmail = textValue(formData, "personal_email").toLowerCase();
   const workEmail = nullableValue(formData, "work_email")?.toLowerCase() ?? null;
-  const loginEmail = workEmail ?? personalEmail;
+  const loginEmail = current.is_test_account
+    ? personalEmail
+    : workEmail ?? personalEmail;
   const fullName = textValue(formData, "full_name");
   const jobTitle = textValue(formData, "job_title");
   const departmentId = textValue(formData, "department_id");
@@ -365,4 +367,67 @@ export async function assignEmployeeWorkEmail(formData: FormData) {
   revalidatePath("/dashboard");
 
   redirect(`/employees/${employeeId}?access=${status}`);
+}
+
+
+export async function deactivateEmployee(formData: FormData) {
+  await requireRole(ADMIN_ROLES);
+  const supabase = await createClient();
+  const employeeId = textValue(formData, "employee_id");
+  const reason = textValue(formData, "reason");
+
+  if (!employeeId) fail("/employees", "Employee ID is missing.");
+  if (!reason) fail(`/employees/${employeeId}`, "Enter a deactivation reason.");
+
+  const { error } = await supabase.rpc("admin_deactivate_employee", {
+    p_employee_id: employeeId,
+    p_reason: reason,
+  });
+
+  if (error) {
+    fail(
+      `/employees/${employeeId}`,
+      error.message.replace(/^.*?:\s*/, "").trim() ||
+        "Could not deactivate employee.",
+    );
+  }
+
+  revalidatePath("/employees");
+  revalidatePath(`/employees/${employeeId}`);
+  revalidatePath("/dashboard");
+  redirect(`/employees/${employeeId}?deactivated=1`);
+}
+
+export async function deleteDemoEmployee(formData: FormData) {
+  await requireRole(ADMIN_ROLES);
+  const employeeId = textValue(formData, "employee_id");
+  const employeeCode = textValue(formData, "employee_code");
+  const confirmation = textValue(formData, "confirmation");
+  const reason = textValue(formData, "reason");
+
+  if (!employeeId) fail("/employees", "Employee ID is missing.");
+  if (!employeeCode || confirmation !== employeeCode) {
+    fail(
+      `/employees/${employeeId}`,
+      "Enter the employee code exactly to confirm deletion.",
+    );
+  }
+  if (!reason) fail(`/employees/${employeeId}`, "Enter a deletion reason.");
+
+  const result = await invokeEmployeeAccount({
+    action: "delete_demo_employee",
+    employee_id: employeeId,
+    reason,
+  });
+
+  if (result.status !== "deleted") {
+    fail(
+      `/employees/${employeeId}`,
+      result.message ?? "Could not delete the demo employee.",
+    );
+  }
+
+  revalidatePath("/employees");
+  revalidatePath("/dashboard");
+  redirect("/employees?deleted=1");
 }

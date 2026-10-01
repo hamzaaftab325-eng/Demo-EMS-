@@ -242,6 +242,62 @@ export type Database = {
           },
         ]
       }
+      deleted_employee_archives: {
+        Row: {
+          deleted_at: string
+          deleted_by: string | null
+          deletion_reason: string
+          employee_code: string
+          full_name: string
+          id: string
+          is_test_account: boolean
+          login_email: string
+          original_profile_id: string
+          role: Database["public"]["Enums"]["app_role"]
+          setup_email: string | null
+          snapshot: Json
+          work_email: string | null
+        }
+        Insert: {
+          deleted_at?: string
+          deleted_by?: string | null
+          deletion_reason: string
+          employee_code: string
+          full_name: string
+          id?: string
+          is_test_account: boolean
+          login_email: string
+          original_profile_id: string
+          role: Database["public"]["Enums"]["app_role"]
+          setup_email?: string | null
+          snapshot: Json
+          work_email?: string | null
+        }
+        Update: {
+          deleted_at?: string
+          deleted_by?: string | null
+          deletion_reason?: string
+          employee_code?: string
+          full_name?: string
+          id?: string
+          is_test_account?: boolean
+          login_email?: string
+          original_profile_id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          setup_email?: string | null
+          snapshot?: Json
+          work_email?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "deleted_employee_archives_deleted_by_fkey"
+            columns: ["deleted_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       departments: {
         Row: {
           code: string
@@ -794,6 +850,11 @@ export type Database = {
           created_by: string | null
           deactivated_at: string | null
           deactivation_reason: string | null
+          deleted_at: string | null
+          deleted_by: string | null
+          deleted_original_email: string | null
+          deleted_original_employee_code: string | null
+          deletion_reason: string | null
           department_id: string
           email: string
           employee_code: string
@@ -819,6 +880,11 @@ export type Database = {
           created_by?: string | null
           deactivated_at?: string | null
           deactivation_reason?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
+          deleted_original_email?: string | null
+          deleted_original_employee_code?: string | null
+          deletion_reason?: string | null
           department_id: string
           email: string
           employee_code: string
@@ -844,6 +910,11 @@ export type Database = {
           created_by?: string | null
           deactivated_at?: string | null
           deactivation_reason?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
+          deleted_original_email?: string | null
+          deleted_original_employee_code?: string | null
+          deletion_reason?: string | null
           department_id?: string
           email?: string
           employee_code?: string
@@ -864,6 +935,13 @@ export type Database = {
           {
             foreignKeyName: "profiles_created_by_fkey"
             columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "profiles_deleted_by_fkey"
+            columns: ["deleted_by"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
@@ -1641,6 +1719,10 @@ export type Database = {
             }
             Returns: string
           }
+      admin_deactivate_employee: {
+        Args: { p_employee_id: string; p_reason: string }
+        Returns: undefined
+      }
       admin_update_employee:
         | {
             Args: {
@@ -1773,6 +1855,10 @@ export type Database = {
           p_start_date: string
         }
         Returns: string
+      }
+      service_archive_demo_employee: {
+        Args: { p_actor_id: string; p_employee_id: string; p_reason: string }
+        Returns: Json
       }
       service_assign_employee_work_email: {
         Args: {

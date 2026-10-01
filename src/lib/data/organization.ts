@@ -32,6 +32,19 @@ export type EmployeeRow = {
   scheduleName: string | null;
 };
 
+export type DeletedEmployeeRow = {
+  id: string;
+  originalProfileId: string;
+  employeeCode: string;
+  fullName: string;
+  loginEmail: string;
+  setupEmail: string | null;
+  workEmail: string | null;
+  role: EmsRole;
+  deletedAt: string;
+  deletionReason: string;
+};
+
 export type DepartmentOption = {
   id: string;
   name: string;
@@ -72,6 +85,7 @@ export async function getEmployeeDirectory(
     .select(
       "id, employee_code, email, full_name, job_title, department_id, employment_type, role, employment_status, timezone, hire_date, is_active, is_test_account, auth_user_id, auth_invited_at, auth_activated_at",
     )
+    .is("deleted_at", null)
     .order("employee_code");
 
   if (profilesError) {
@@ -216,6 +230,7 @@ export async function getOrganizationOptions(
       .from("profiles")
       .select("id, full_name, role, is_test_account, is_active")
       .eq("is_active", true)
+      .is("deleted_at", null)
       .in("role", ["manager", "director", "super_admin"])
       .order("full_name"),
   ]);
@@ -280,4 +295,37 @@ export function getOrganizationSummary(employees: EmployeeRow[]) {
       a.name.localeCompare(b.name),
     ),
   };
+}
+
+
+export async function getDeletedEmployeeArchive(
+  profile: CurrentProfile,
+): Promise<DeletedEmployeeRow[]> {
+  if (profile.role !== "super_admin") return [];
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("deleted_employee_archives")
+    .select(
+      "id, original_profile_id, employee_code, full_name, login_email, setup_email, work_email, role, deleted_at, deletion_reason, is_test_account",
+    )
+    .eq("is_test_account", profile.is_test_account)
+    .order("deleted_at", { ascending: false });
+
+  if (error) {
+    throw new Error("Could not load deleted employee archive.");
+  }
+
+  return (data ?? []).map((row) => ({
+    id: row.id,
+    originalProfileId: row.original_profile_id,
+    employeeCode: row.employee_code,
+    fullName: row.full_name,
+    loginEmail: row.login_email,
+    setupEmail: row.setup_email,
+    workEmail: row.work_email,
+    role: row.role as EmsRole,
+    deletedAt: row.deleted_at,
+    deletionReason: row.deletion_reason,
+  }));
 }

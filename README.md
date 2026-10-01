@@ -27,6 +27,11 @@ Phase 1 established the production Next.js foundation. Phase 2 added real Supaba
 - Linked Auth login identities cannot drift through ordinary profile edits
 - Account-setup resend is a fresh invite, never a password-recovery email
 - Password recovery is limited to already-activated active EMS accounts
+- Demo onboarding always sends the first setup invitation to the setup email
+- Planned work email remains pending until password setup is complete
+- Dedicated Super Admin deactivate control with preserved history
+- Archived demo employee deletion that releases email/code for reuse
+- Deleted employee archive visible to Super Admin
 
 ## Demo data
 
@@ -183,8 +188,8 @@ The My Day timeline uses the employee's target work duration as its visible wind
 Employee onboarding is part of the trusted Super Admin workflow:
 
 1. Super Admin creates the employee with role, department, manager and schedule.
-2. EMS stores a setup/personal contact separately from the current login identity.
-3. EMS sends a one-time **account setup invitation** through the protected `employee-account` Edge Function.
+2. EMS stores a setup/personal contact separately from the planned work login identity.
+3. In the demo environment, the setup email is the initial Auth/login identity and receives the one-time **account setup invitation** through the protected `employee-account` Edge Function. Any different work email is stored as pending.
 4. The employee opens the latest invite and creates their own password.
 5. Database authorization remains blocked until password setup records `auth_activated_at`.
 6. If setup is incomplete, **Resend account setup** replaces the incomplete Auth identity and sends a fresh Invite-user email. It does not send a Reset-password email.
@@ -196,6 +201,12 @@ Employee onboarding is part of the trusted Super Admin workflow:
 The restricted `employee_access_contacts` table stores setup-contact/work-email metadata. Only Super Admin can read it through authenticated RLS; normal employees and reporting managers do not receive those private contact rows.
 
 Mailbox provisioning itself is outside EMS. Production work mailboxes must exist in the company's email platform before they can reliably receive Auth/recovery mail.
+
+### Demo employee deletion
+
+Super Admin can deactivate any non-self employee. Deactivation blocks access but keeps the employee record and history.
+
+For demo/test employees only, Super Admin can also remove the employee from the working directory. EMS archives the original identity and organization snapshot, preserves historical EMS records through the retained inactive profile, releases the original employee code/setup/work emails for reuse, moves any linked Auth identity to an inert tombstone email, and unlinks it from EMS. Deleted employees are shown in the Super Admin archive on the Employees page.
 
 ### Professional Auth email templates
 

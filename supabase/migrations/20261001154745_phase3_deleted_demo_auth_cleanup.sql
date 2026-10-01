@@ -1,0 +1,4 @@
+-- Superseded during the same Phase 3 hardening pass.
+-- Demo Auth identity cleanup is handled by the protected employee-account
+-- Edge Function using the Supabase Admin API. The following migration removes
+-- the temporary database-trigger approach if it exists.

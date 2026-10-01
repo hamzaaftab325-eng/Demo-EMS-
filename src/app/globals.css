@@ -392,3 +392,14 @@ label.f input,label.f select{width:100%}
 .notification-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .request-reassign-form{display:grid;grid-template-columns:minmax(180px,1fr) minmax(220px,1.4fr) auto;gap:10px;align-items:end;padding-top:4px}
 @media(max-width:760px){.request-reassign-form{grid-template-columns:1fr}.notification-item-head{align-items:flex-start}}
+
+
+/* Phase 3 — employee lifecycle controls */
+.employee-danger-zone{border-color:color-mix(in srgb,var(--red) 24%,var(--border))}
+.employee-danger-zone .hd h2{color:var(--red)}
+.employee-control-stack{display:grid;gap:16px}
+.employee-control-form{display:grid;gap:10px}
+.employee-control-form+.employee-control-form{padding-top:16px;border-top:1px solid var(--border)}
+.employee-control-form .f{margin:0}
+.employee-control-form input[type=text]{width:100%}
+.employee-delete-form{padding:12px;border:1px solid color-mix(in srgb,var(--red) 28%,var(--border));border-radius:8px;background:color-mix(in srgb,var(--red) 4%,var(--surface))}
