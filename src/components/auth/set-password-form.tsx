@@ -8,7 +8,11 @@ import { createClient } from "@/lib/supabase/client";
 
 type ScreenState = "checking" | "ready" | "invalid" | "saving";
 
-export function SetPasswordForm() {
+export function SetPasswordForm({
+  mode = "reset",
+}: {
+  mode?: "invite" | "reset";
+}) {
   const [state, setState] = useState<ScreenState>("checking");
   const [message, setMessage] = useState<string | null>(null);
   const [password, setPassword] = useState("");
@@ -23,7 +27,12 @@ export function SetPasswordForm() {
       const accessToken = hash.get("access_token");
       const refreshToken = hash.get("refresh_token");
       const errorDescription = hash.get("error_description");
-      const code = new URLSearchParams(window.location.search).get("code");
+      const search = new URLSearchParams(window.location.search);
+      const code = search.get("code");
+      const inviteMode =
+        mode === "invite" ||
+        search.get("mode") === "invite" ||
+        hash.get("type") === "invite";
 
       if (errorDescription) {
         if (!cancelled) {
@@ -47,7 +56,11 @@ export function SetPasswordForm() {
           return;
         }
 
-        window.history.replaceState({}, document.title, "/set-password");
+        window.history.replaceState(
+          {},
+          document.title,
+          inviteMode ? "/signup" : "/set-password",
+        );
       } else if (code) {
         const { error } = await supabase.auth.exchangeCodeForSession(code);
 
@@ -59,7 +72,11 @@ export function SetPasswordForm() {
           return;
         }
 
-        window.history.replaceState({}, document.title, "/set-password");
+        window.history.replaceState(
+          {},
+          document.title,
+          inviteMode ? "/signup" : "/set-password",
+        );
       }
 
       const {
@@ -83,7 +100,7 @@ export function SetPasswordForm() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [mode]);
 
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -185,10 +202,13 @@ export function SetPasswordForm() {
 
           <div>
             <p className="login-eyebrow">Employee Management System</p>
-            <h1 id="password-title">Set your password</h1>
+            <h1 id="password-title">
+              {mode === "invite" ? "Create your EMS account" : "Set your password"}
+            </h1>
             <p className="login-copy">
-              Finish account activation using the secure link sent to your
-              employee email.
+              {mode === "invite"
+                ? "Choose your password to activate your employee account and continue to EMS."
+                : "Choose a new password using the secure recovery link sent to your email."}
             </p>
           </div>
         </div>
@@ -198,7 +218,7 @@ export function SetPasswordForm() {
             <LockKeyhole size={18} />
           </div>
 
-          <h2>Account setup</h2>
+          <h2>{mode === "invite" ? "Sign up" : "Password setup"}</h2>
           <p className="mut login-help">
             Your administrator never sees this password.
           </p>
@@ -257,7 +277,9 @@ export function SetPasswordForm() {
               >
                 {state === "saving"
                   ? "Activating…"
-                  : "Set password & activate account"}
+                  : mode === "invite"
+                    ? "Create account & sign in"
+                    : "Save new password"}
               </button>
             </form>
           )}
