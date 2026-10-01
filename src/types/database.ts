@@ -275,6 +275,48 @@ export type Database = {
         }
         Relationships: []
       }
+      employee_access_contacts: {
+        Row: {
+          employee_id: string
+          personal_email: string
+          updated_at: string
+          updated_by: string | null
+          work_email: string | null
+          work_email_assigned_at: string | null
+        }
+        Insert: {
+          employee_id: string
+          personal_email: string
+          updated_at?: string
+          updated_by?: string | null
+          work_email?: string | null
+          work_email_assigned_at?: string | null
+        }
+        Update: {
+          employee_id?: string
+          personal_email?: string
+          updated_at?: string
+          updated_by?: string | null
+          work_email?: string | null
+          work_email_assigned_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_access_contacts_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_access_contacts_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       employee_presence: {
         Row: {
           employee_id: string
@@ -1562,42 +1604,83 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      admin_create_employee: {
-        Args: {
-          p_department_id: string
-          p_email: string
-          p_employee_code: string
-          p_employment_type: Database["public"]["Enums"]["employment_type"]
-          p_full_name: string
-          p_hire_date?: string
-          p_is_test_account?: boolean
-          p_job_title: string
-          p_manager_id?: string
-          p_role: Database["public"]["Enums"]["app_role"]
-          p_schedule_id?: string
-          p_timezone?: string
-        }
-        Returns: string
-      }
-      admin_update_employee: {
-        Args: {
-          p_deactivation_reason?: string
-          p_department_id: string
-          p_email: string
-          p_employee_code: string
-          p_employee_id: string
-          p_employment_status: Database["public"]["Enums"]["employment_status"]
-          p_employment_type: Database["public"]["Enums"]["employment_type"]
-          p_full_name: string
-          p_hire_date: string
-          p_job_title: string
-          p_manager_id: string
-          p_role: Database["public"]["Enums"]["app_role"]
-          p_schedule_id: string
-          p_timezone: string
-        }
-        Returns: undefined
-      }
+      admin_create_employee:
+        | {
+            Args: {
+              p_department_id: string
+              p_email: string
+              p_employee_code: string
+              p_employment_type: Database["public"]["Enums"]["employment_type"]
+              p_full_name: string
+              p_hire_date?: string
+              p_is_test_account?: boolean
+              p_job_title: string
+              p_manager_id?: string
+              p_role: Database["public"]["Enums"]["app_role"]
+              p_schedule_id?: string
+              p_timezone?: string
+            }
+            Returns: string
+          }
+        | {
+            Args: {
+              p_department_id: string
+              p_email: string
+              p_employee_code: string
+              p_employment_type: Database["public"]["Enums"]["employment_type"]
+              p_full_name: string
+              p_hire_date: string
+              p_is_test_account: boolean
+              p_job_title: string
+              p_manager_id: string
+              p_personal_email: string
+              p_role: Database["public"]["Enums"]["app_role"]
+              p_schedule_id: string
+              p_timezone: string
+              p_work_email: string
+            }
+            Returns: string
+          }
+      admin_update_employee:
+        | {
+            Args: {
+              p_deactivation_reason?: string
+              p_department_id: string
+              p_email: string
+              p_employee_code: string
+              p_employee_id: string
+              p_employment_status: Database["public"]["Enums"]["employment_status"]
+              p_employment_type: Database["public"]["Enums"]["employment_type"]
+              p_full_name: string
+              p_hire_date: string
+              p_job_title: string
+              p_manager_id: string
+              p_role: Database["public"]["Enums"]["app_role"]
+              p_schedule_id: string
+              p_timezone: string
+            }
+            Returns: undefined
+          }
+        | {
+            Args: {
+              p_deactivation_reason: string
+              p_department_id: string
+              p_email: string
+              p_employee_code: string
+              p_employee_id: string
+              p_employment_status: Database["public"]["Enums"]["employment_status"]
+              p_employment_type: Database["public"]["Enums"]["employment_type"]
+              p_full_name: string
+              p_hire_date: string
+              p_job_title: string
+              p_manager_id: string
+              p_personal_email: string
+              p_role: Database["public"]["Enums"]["app_role"]
+              p_schedule_id: string
+              p_timezone: string
+            }
+            Returns: undefined
+          }
       attendance_correct_day: {
         Args: {
           p_break_minutes?: number
@@ -1691,6 +1774,15 @@ export type Database = {
         }
         Returns: string
       }
+      service_assign_employee_work_email: {
+        Args: {
+          p_actor_id: string
+          p_employee_id: string
+          p_work_email: string
+        }
+        Returns: undefined
+      }
+      service_get_resend_api_key: { Args: never; Returns: string }
     }
     Enums: {
       app_role: "employee" | "manager" | "director" | "super_admin"
