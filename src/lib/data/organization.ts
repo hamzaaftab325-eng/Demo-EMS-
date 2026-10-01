@@ -177,6 +177,7 @@ export async function getEmployeeDirectory(
 
 export async function getOrganizationOptions(
   profile: CurrentProfile,
+  includeScheduleId?: string | null,
 ): Promise<OrganizationOptions> {
   const supabase = await createClient();
 
@@ -193,8 +194,7 @@ export async function getOrganizationOptions(
       .order("name"),
     supabase
       .from("work_schedules")
-      .select("id, name")
-      .eq("is_active", true)
+      .select("id, name, is_active")
       .order("name"),
     supabase
       .from("profiles")
@@ -210,7 +210,9 @@ export async function getOrganizationOptions(
 
   return {
     departments: departments ?? [],
-    schedules: schedules ?? [],
+    schedules: (schedules ?? [])
+      .filter((row) => row.is_active || row.id === includeScheduleId)
+      .map((row) => ({ id: row.id, name: row.name })),
     managers: sameEnvironment(managers ?? [], profile).map((row) => ({
       id: row.id,
       fullName: row.full_name,
