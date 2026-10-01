@@ -7,6 +7,7 @@ const PUBLIC_AUTH_PATHS = new Set([
   "/login",
   "/forgot-password",
   "/set-password",
+  "/signup",
 ]);
 
 function redirectToLogin(request: NextRequest, code?: string) {
