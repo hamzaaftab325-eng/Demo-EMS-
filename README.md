@@ -144,3 +144,10 @@ The stabilization audit completed after Phase 5 verifies:
 - No duplicate employee codes/emails, active reporting lines, active schedules, workdays or scrum entries
 
 The My Day timeline is adaptive to the actual work session. A late-night sign-in at 10:50 PM now renders an hourly window such as 10 PM → 11 PM → 12 AM instead of stretching the bar across an arbitrary 8-hour range.
+
+
+### Cross-midnight workdays
+
+An open workday now remains the employee's active My Day after local midnight until it is signed off or automatically signed off for inactivity. Heartbeat, breaks, meetings, obstacles, task additions and sign-off all resolve the same open workday rather than silently creating a second day's session. A partial unique index prevents more than one open workday per employee.
+
+The My Day timeline uses the employee's target work duration as its visible window. For example, an 8:08 AM sign-in on an 8-hour target displays the work window through roughly 5 PM; a 10:50 PM sign-in displays 10 PM, 11 PM, 12 AM and the overnight hours instead of collapsing to a two-hour strip.

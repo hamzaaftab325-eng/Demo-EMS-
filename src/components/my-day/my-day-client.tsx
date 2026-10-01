@@ -366,15 +366,21 @@ function Timeline({ state }: { state: MyDayState }) {
   const values = segments.flatMap((segment) => [segment.start, segment.end]);
   const earliest = values.length ? Math.min(...values) : now;
   const latest = values.length ? Math.max(...values, now) : now;
+  const targetMinutes = Math.max(
+    60,
+    state.workday?.scheduledMinutes ??
+      state.schedule?.dailyTargetMinutes ??
+      480,
+  );
 
   const start = Math.floor(earliest / hour) * hour;
-  let end = Math.ceil(latest / hour) * hour;
+  const expectedEnd = earliest + targetMinutes * 60 * 1000;
+  let end = Math.ceil(Math.max(latest, expectedEnd) / hour) * hour;
 
   if (end <= start) end = start + hour;
-  if (end - start < 2 * hour) end = start + 2 * hour;
 
   const spanHours = (end - start) / hour;
-  const stepHours = spanHours <= 10 ? 1 : spanHours <= 18 ? 2 : 3;
+  const stepHours = spanHours <= 12 ? 1 : spanHours <= 20 ? 2 : 3;
   const ticks: number[] = [];
 
   for (let tick = start; tick <= end; tick += stepHours * hour) {
