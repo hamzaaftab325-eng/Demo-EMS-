@@ -193,12 +193,7 @@ export default async function RequestsPage({
   const error = single(params.error);
   const center = await getRequestCenter(current);
   const today = dateInZone(current.timezone);
-  const trackedBalances = center.leaveBalances.filter(
-    (row) =>
-      row.defaultAnnualDays != null ||
-      row.usedDays !== 0 ||
-      row.ledgerBalance !== 0,
-  );
+  const trackedBalances = center.leaveBalances;
 
   return (
     <>
