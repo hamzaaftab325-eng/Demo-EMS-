@@ -38,7 +38,7 @@ export async function assignManagerScrumTask(formData: FormData) {
   const supabase = await createClient();
   const { error } = await supabase.rpc("phase7_assign_scrum_task", {
     p_employee_id: employee.id,
-    p_project_code: projectCode || undefined,
+    p_project_code: projectCode,
     p_title: title,
     p_description: description || undefined,
   });

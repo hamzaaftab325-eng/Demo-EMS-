@@ -407,7 +407,7 @@ export async function getScrumBoard(
         breakMinutes: workday?.break_minutes ?? 0,
         meetingMinutes: workday?.meeting_minutes ?? 0,
         scrumEntryId: entry?.id ?? null,
-        scrumStatus: entry?.status ?? "not_started",
+        scrumStatus: (entry?.status ?? "not_started") as ScrumBoardRow["scrumStatus"],
         signedInAt: entry?.signed_in_at ?? null,
         signedOffAt: entry?.signed_off_at ?? null,
         items,
