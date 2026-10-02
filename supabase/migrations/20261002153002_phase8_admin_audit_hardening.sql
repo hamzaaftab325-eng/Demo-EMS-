@@ -1,0 +1,352 @@
+alter table public.audit_logs
+  add column if not exists is_test_account boolean;
+
+alter table public.audit_logs disable trigger audit_logs_no_update;
+
+update public.audit_logs al
+set is_test_account = coalesce(
+  (
+    select p.is_test_account
+    from public.profiles p
+    where p.id = al.actor_id
+  ),
+  (
+    select p.is_test_account
+    from public.profiles p
+    where al.entity_type = 'profile'
+      and al.entity_id ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
+      and p.id = al.entity_id::uuid
+  ),
+  false
+)
+where al.is_test_account is null;
+
+alter table public.audit_logs enable trigger audit_logs_no_update;
+
+alter table public.audit_logs
+  alter column is_test_account set default false,
+  alter column is_test_account set not null;
+
+create index if not exists audit_logs_environment_time_idx
+  on public.audit_logs(is_test_account, created_at desc, id desc);
+
+create or replace function private.current_test_environment()
+returns boolean
+language sql
+stable
+security definer
+set search_path to 'pg_catalog', 'public'
+as $function$
+  select coalesce((
+    select p.is_test_account
+    from public.profiles p
+    where p.auth_user_id = (select auth.uid())
+      and p.is_active
+      and p.employment_status <> 'deactivated'
+      and p.deleted_at is null
+    limit 1
+  ), false)
+$function$;
+
+revoke all on function private.current_test_environment() from public, anon;
+grant execute on function private.current_test_environment() to authenticated;
+
+create or replace function private.phase8_set_audit_environment()
+returns trigger
+language plpgsql
+security definer
+set search_path to 'pg_catalog', 'public', 'private'
+as $function$
+declare
+  v_environment boolean;
+  v_current_profile uuid;
+begin
+  if new.actor_id is not null then
+    select p.is_test_account
+    into v_environment
+    from public.profiles p
+    where p.id = new.actor_id;
+  end if;
+
+  if v_environment is null then
+    v_current_profile := private.current_profile_id();
+
+    if v_current_profile is not null then
+      select p.is_test_account
+      into v_environment
+      from public.profiles p
+      where p.id = v_current_profile;
+    end if;
+  end if;
+
+  if v_environment is null
+     and new.entity_type = 'profile'
+     and new.entity_id ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' then
+    select p.is_test_account
+    into v_environment
+    from public.profiles p
+    where p.id = new.entity_id::uuid;
+  end if;
+
+  new.is_test_account := coalesce(v_environment, false);
+  return new;
+end;
+$function$;
+
+revoke all on function private.phase8_set_audit_environment()
+from public, anon, authenticated;
+
+drop trigger if exists audit_logs_set_environment on public.audit_logs;
+create trigger audit_logs_set_environment
+before insert on public.audit_logs
+for each row execute function private.phase8_set_audit_environment();
+
+drop policy if exists audit_logs_read_super on public.audit_logs;
+create policy audit_logs_read_super
+on public.audit_logs
+for select
+to authenticated
+using (
+  (select private.is_super_admin())
+  and is_test_account = (select private.current_test_environment())
+);
+
+drop policy if exists audit_logs_insert_super on public.audit_logs;
+create policy audit_logs_insert_super
+on public.audit_logs
+for insert
+to authenticated
+with check (
+  (select private.is_super_admin())
+  and is_test_account = (select private.current_test_environment())
+);
+
+create or replace function private.phase8_record_admin_change()
+returns trigger
+language plpgsql
+security definer
+set search_path to 'pg_catalog', 'public', 'private'
+as $function$
+declare
+  v_actor uuid;
+  v_action text;
+  v_entity_type text;
+  v_entity_id text;
+  v_before jsonb;
+  v_after jsonb;
+  v_reason text;
+begin
+  v_actor := private.current_profile_id();
+
+  v_entity_type := case tg_table_name
+    when 'company_settings' then 'company_settings'
+    when 'work_schedules' then 'work_schedule'
+    when 'holidays' then 'holiday'
+    when 'leave_types' then 'leave_type'
+    else tg_table_name
+  end;
+
+  v_action := case
+    when tg_op = 'INSERT' then v_entity_type || '_created'
+    when tg_op = 'UPDATE' then v_entity_type || '_updated'
+    else v_entity_type || '_deleted'
+  end;
+
+  v_before := case when tg_op in ('UPDATE','DELETE') then to_jsonb(old) else null end;
+  v_after := case when tg_op in ('INSERT','UPDATE') then to_jsonb(new) else null end;
+
+  v_entity_id := case
+    when tg_table_name = 'company_settings' then '1'
+    when tg_op = 'DELETE' then old.id::text
+    else new.id::text
+  end;
+
+  v_reason := nullif(btrim(coalesce(
+    current_setting('app.phase8_reason', true),
+    ''
+  )), '');
+
+  if v_reason is null then
+    v_reason := case
+      when tg_table_name = 'work_schedules'
+           and tg_op = 'INSERT'
+           and coalesce(new.name, '') like 'Request #%'
+        then 'Schedule generated by approved request'
+      else 'Administrative configuration change'
+    end;
+  end if;
+
+  insert into public.audit_logs(
+    actor_id,
+    action,
+    entity_type,
+    entity_id,
+    before_data,
+    after_data,
+    reason
+  )
+  values(
+    v_actor,
+    v_action,
+    v_entity_type,
+    v_entity_id,
+    v_before,
+    v_after,
+    v_reason
+  );
+
+  return coalesce(new, old);
+end;
+$function$;
+
+revoke all on function private.phase8_record_admin_change()
+from public, anon, authenticated;
+
+drop trigger if exists phase8_audit_company_settings on public.company_settings;
+create trigger phase8_audit_company_settings
+after insert or update or delete on public.company_settings
+for each row execute function private.phase8_record_admin_change();
+
+drop trigger if exists phase8_audit_work_schedules on public.work_schedules;
+create trigger phase8_audit_work_schedules
+after insert or update or delete on public.work_schedules
+for each row execute function private.phase8_record_admin_change();
+
+drop trigger if exists phase8_audit_holidays on public.holidays;
+create trigger phase8_audit_holidays
+after insert or update or delete on public.holidays
+for each row execute function private.phase8_record_admin_change();
+
+drop trigger if exists phase8_audit_leave_types on public.leave_types;
+create trigger phase8_audit_leave_types
+after insert or update or delete on public.leave_types
+for each row execute function private.phase8_record_admin_change();
+
+do $$
+begin
+  if not exists (
+    select 1 from pg_constraint
+    where conname = 'company_settings_phase8_threshold_order'
+      and conrelid = 'public.company_settings'::regclass
+  ) then
+    alter table public.company_settings
+      add constraint company_settings_phase8_threshold_order
+      check (
+        heartbeat_stale_minutes * 60 > heartbeat_interval_seconds
+        and auto_signoff_idle_minutes > presence_away_minutes
+      );
+  end if;
+
+  if not exists (
+    select 1 from pg_constraint
+    where conname = 'work_schedules_phase8_field_shape'
+      and conrelid = 'public.work_schedules'::regclass
+  ) then
+    alter table public.work_schedules
+      add constraint work_schedules_phase8_field_shape
+      check (
+        (
+          schedule_type = 'fixed'
+          and start_time is not null
+          and end_time is not null
+          and core_start_time is null
+          and core_end_time is null
+        )
+        or (
+          schedule_type = 'flexible'
+          and start_time is null
+          and end_time is null
+          and core_start_time is null
+          and core_end_time is null
+        )
+        or (
+          schedule_type = 'flexible_core'
+          and start_time is null
+          and end_time is null
+          and core_start_time is not null
+          and core_end_time is not null
+        )
+      );
+  end if;
+
+  if not exists (
+    select 1 from pg_constraint
+    where conname = 'work_schedules_phase8_clock_span'
+      and conrelid = 'public.work_schedules'::regclass
+  ) then
+    alter table public.work_schedules
+      add constraint work_schedules_phase8_clock_span
+      check (
+        (schedule_type <> 'fixed' or start_time <> end_time)
+        and (
+          schedule_type <> 'flexible_core'
+          or core_start_time <> core_end_time
+        )
+      );
+  end if;
+
+  if not exists (
+    select 1 from pg_constraint
+    where conname = 'holidays_phase8_exact_scope'
+      and conrelid = 'public.holidays'::regclass
+  ) then
+    alter table public.holidays
+      add constraint holidays_phase8_exact_scope
+      check (
+        (is_company_wide and department_id is null)
+        or (not is_company_wide and department_id is not null)
+      );
+  end if;
+
+  if not exists (
+    select 1 from pg_constraint
+    where conname = 'holidays_phase8_country_code'
+      and conrelid = 'public.holidays'::regclass
+  ) then
+    alter table public.holidays
+      add constraint holidays_phase8_country_code
+      check (
+        country_code is null
+        or country_code ~ '^[A-Z]{2}$'
+      );
+  end if;
+
+  if not exists (
+    select 1 from pg_constraint
+    where conname = 'leave_types_phase8_code_format'
+      and conrelid = 'public.leave_types'::regclass
+  ) then
+    alter table public.leave_types
+      add constraint leave_types_phase8_code_format
+      check (
+        code ~ '^[a-z0-9][a-z0-9_-]{1,31}$'
+      );
+  end if;
+
+  if not exists (
+    select 1 from pg_constraint
+    where conname = 'leave_types_phase8_default_days_limit'
+      and conrelid = 'public.leave_types'::regclass
+  ) then
+    alter table public.leave_types
+      add constraint leave_types_phase8_default_days_limit
+      check (
+        default_annual_days is null
+        or default_annual_days <= 366
+      );
+  end if;
+end
+$$;
+
+revoke delete, update, truncate, references, trigger
+on public.audit_logs
+from authenticated;
+
+revoke delete, truncate, references, trigger
+on public.company_settings, public.work_schedules, public.leave_types
+from authenticated;
+
+revoke truncate, references, trigger
+on public.holidays
+from authenticated;
+

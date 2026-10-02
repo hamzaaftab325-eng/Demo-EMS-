@@ -49,6 +49,9 @@ jobs:
       - name: Phase 7 management verification
         run: npm run phase7:check
 
+      - name: Phase 8 admin verification
+        run: npm run phase8:check
+
       - name: Lint
         run: npm run lint
 

@@ -328,3 +328,17 @@ INVOKER RPCs that preserve the Phase 4 direct-write guard.
 
 See `docs/PHASE_7_MANAGEMENT_QA.md` for the rollback acceptance matrix and
 report/export coverage.
+
+
+## Phase 8 admin gate
+
+Phase 8 — Audit Log & Administrative Settings is protected by
+`npm run phase8:check` plus lint, TypeScript and the production build.
+
+The phase exposes the existing immutable audit history and canonical company
+settings, schedules, holidays and leave types through Super Admin-only
+workflows. Administrative configuration changes are automatically audited, and
+audit records are isolated between demo/test and production environments.
+
+See `docs/PHASE_8_ADMIN_QA.md` for the rollback acceptance matrix and
+configuration-security coverage.

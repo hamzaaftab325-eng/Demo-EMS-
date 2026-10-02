@@ -133,6 +133,7 @@ export type Database = {
           entity_id: string | null
           entity_type: string
           id: number
+          is_test_account: boolean
           reason: string | null
         }
         Insert: {
@@ -144,6 +145,7 @@ export type Database = {
           entity_id?: string | null
           entity_type: string
           id?: never
+          is_test_account?: boolean
           reason?: string | null
         }
         Update: {
@@ -155,6 +157,7 @@ export type Database = {
           entity_id?: string | null
           entity_type?: string
           id?: never
+          is_test_account?: boolean
           reason?: string | null
         }
         Relationships: [
@@ -1685,7 +1688,7 @@ export type Database = {
       admin_create_employee:
         | {
             Args: {
-              p_department_id: string
+              p_department_id: string | null
               p_email: string
               p_employee_code: string
               p_employment_type: Database["public"]["Enums"]["employment_type"]
@@ -1713,7 +1716,7 @@ export type Database = {
               p_manager_id: string
               p_personal_email: string
               p_role: Database["public"]["Enums"]["app_role"]
-              p_schedule_id: string
+              p_schedule_id: string | null
               p_timezone: string
               p_work_email: string
             }
@@ -1821,11 +1824,96 @@ export type Database = {
         Returns: string
       }
       phase7_resolve_scrum_obstacle: {
+        Args: { p_obstacle_id: string; p_resolution_note: string }
+        Returns: string
+      }
+      phase8_audit_search: {
         Args: {
-          p_obstacle_id: string
-          p_resolution_note: string
+          p_action?: string
+          p_actor_id?: string
+          p_entity_type?: string
+          p_from_date?: string
+          p_limit?: number
+          p_offset?: number
+          p_query?: string
+          p_to_date?: string
+        }
+        Returns: Json
+      }
+      phase8_delete_holiday: {
+        Args: { p_holiday_id: string; p_reason?: string }
+        Returns: undefined
+      }
+      phase8_save_holiday: {
+        Args: {
+          p_country_code: string | null
+          p_department_id: string
+          p_holiday_date: string
+          p_holiday_id: string | null
+          p_is_company_wide: boolean
+          p_name: string
+          p_reason?: string
         }
         Returns: string
+      }
+      phase8_save_leave_type: {
+        Args: {
+          p_code: string
+          p_default_annual_days: number | null
+          p_is_paid: boolean
+          p_leave_type_id: string | null
+          p_name: string
+          p_reason?: string
+          p_requires_reason: boolean
+        }
+        Returns: string
+      }
+      phase8_save_schedule: {
+        Args: {
+          p_core_end_time: string | null
+          p_core_start_time: string | null
+          p_daily_target_minutes: number
+          p_end_time: string | null
+          p_grace_minutes: number
+          p_name: string
+          p_reason?: string
+          p_schedule_id: string
+          p_schedule_type: Database["public"]["Enums"]["schedule_type"]
+          p_start_time: string | null
+          p_timezone: string
+        }
+        Returns: string
+      }
+      phase8_set_leave_type_active: {
+        Args: {
+          p_is_active: boolean
+          p_leave_type_id: string
+          p_reason?: string
+        }
+        Returns: undefined
+      }
+      phase8_set_schedule_active: {
+        Args: { p_is_active: boolean; p_reason?: string; p_schedule_id: string }
+        Returns: undefined
+      }
+      phase8_update_company_settings: {
+        Args: {
+          p_auto_signoff_idle_minutes: number
+          p_company_name: string
+          p_default_daily_target_minutes: number
+          p_default_schedule_id: string | null
+          p_grace_period_minutes: number
+          p_heartbeat_interval_seconds: number
+          p_heartbeat_stale_minutes: number
+          p_presence_away_minutes: number
+          p_presence_idle_minutes: number
+          p_reason?: string
+          p_require_final_request_approval: boolean
+          p_require_scrum_for_signin: boolean
+          p_require_scrum_for_signoff: boolean
+          p_timezone: string
+        }
+        Returns: undefined
       }
       presence_heartbeat: {
         Args: { p_last_activity_at?: string }

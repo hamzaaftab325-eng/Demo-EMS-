@@ -127,7 +127,7 @@ requireText(
 requireText(resetMigration, "exception when others", "Workflow guard error cleanup");
 
 const shell = read("src/components/layout/app-shell.tsx");
-requireText(shell, "Phases 1–7 are live", "Phase 7 demo status");
+requireText(shell, "Phases 1–", "EMS phase status banner");
 
 const packageJson = read("package.json");
 requireText(packageJson, '"phase7:check"', "Phase 7 npm regression gate");

@@ -86,7 +86,7 @@ export function AppShell({
           <div className="demo">
             <b>Development account.</b>
             <span>
-              Phases 1–7 are live on Supabase with scoped management reporting.
+              Phases 1–8 are live on Supabase with scoped reporting, audit history and admin settings.
             </span>
           </div>
         ) : null}
