@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { PageHead, StatusPill } from "@/components/shared/prototype";
 import { RequestSubmitButton } from "@/components/requests/request-submit-button";
 import { requireCurrentProfile } from "@/lib/auth/current-profile";
