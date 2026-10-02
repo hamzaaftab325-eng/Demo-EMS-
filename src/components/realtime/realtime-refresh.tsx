@@ -9,7 +9,12 @@ type RealtimeTable =
   | "workdays"
   | "requests"
   | "request_approvals"
-  | "notifications";
+  | "notifications"
+  | "scrum_entries"
+  | "scrum_items"
+  | "scrum_entry_items"
+  | "scrum_item_progress"
+  | "scrum_obstacles";
 
 export function RealtimeRefresh({
   tables,

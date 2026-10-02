@@ -46,6 +46,9 @@ jobs:
       - name: Requests and approvals verification
         run: npm run requests:check
 
+      - name: Phase 7 management verification
+        run: npm run phase7:check
+
       - name: Lint
         run: npm run lint
 

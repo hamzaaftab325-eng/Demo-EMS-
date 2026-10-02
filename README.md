@@ -315,3 +315,16 @@ writes, notification ownership, duplicate-decision safety, temporary/permanent
 schedule application, approved-leave sign-in blocking and Dec → Jan leave approval.
 
 See `docs/PHASE_6_REQUESTS_QA.md` for the acceptance matrix.
+
+
+## Phase 7 management gate
+
+Phase 7 — Management Dashboard, Scrum Board & Reports is protected by
+`npm run phase7:check` plus lint, TypeScript and the production build.
+
+The phase uses the existing hierarchy-scoped attendance, Scrum and request data.
+Manager-added Scrum work and blocker resolution run through narrow SECURITY
+INVOKER RPCs that preserve the Phase 4 direct-write guard.
+
+See `docs/PHASE_7_MANAGEMENT_QA.md` for the rollback acceptance matrix and
+report/export coverage.

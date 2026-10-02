@@ -2,7 +2,12 @@ import Link from "next/link";
 import { PageHead } from "@/components/shared/prototype";
 import { RealtimeRefresh } from "@/components/realtime/realtime-refresh";
 import { requireRole } from "@/lib/auth/current-profile";
-import { formatDuration, getLiveTeam } from "@/lib/data/attendance";
+import {
+  currentDateFor,
+  formatDuration,
+  getLiveTeam,
+} from "@/lib/data/attendance";
+import { getScrumBoard } from "@/lib/data/management";
 import { getPendingApprovalCount } from "@/lib/data/requests";
 import { TEAM_ROLES } from "@/lib/navigation";
 
@@ -30,10 +35,27 @@ function timeNow(timeZone: string) {
 
 export default async function DashboardPage() {
   const current = await requireRole(TEAM_ROLES);
-  const [team, pendingRequestCount] = await Promise.all([
+  const workDate = currentDateFor(current.timezone);
+  const [team, pendingRequestCount, scrum] = await Promise.all([
     getLiveTeam(current),
     getPendingApprovalCount(current),
+    getScrumBoard(current, workDate),
   ]);
+
+  const activeScrums = scrum.filter(
+    (row) => row.scrumStatus === "signed_in" || row.scrumStatus === "reopened",
+  ).length;
+  const scrumRows = scrum.filter((row) => row.items.length > 0);
+  const scrumProgress = scrumRows.length
+    ? Math.round(
+        scrumRows.reduce((sum, row) => sum + row.averageProgress, 0) /
+          scrumRows.length,
+      )
+    : 0;
+  const openBlockers = scrum.reduce(
+    (sum, row) => sum + row.openObstacles,
+    0,
+  );
 
   const count = (status: keyof typeof statusMeta) =>
     team.filter((row) => row.presenceStatus === status).length;
@@ -79,7 +101,19 @@ export default async function DashboardPage() {
 
   return (
     <>
-      <RealtimeRefresh tables={["employee_presence", "workdays"]} />
+      <RealtimeRefresh
+        tables={[
+          "employee_presence",
+          "workdays",
+          "requests",
+          "request_approvals",
+          "scrum_entries",
+          "scrum_items",
+          "scrum_entry_items",
+          "scrum_item_progress",
+          "scrum_obstacles",
+        ]}
+      />
 
       <PageHead
         title="Dashboard"
@@ -184,10 +218,11 @@ export default async function DashboardPage() {
               </Link>
             </div>
             <div className="bd">
-              <div className="phase-value">Phase 7</div>
+              <div className="phase-value">{scrumProgress}%</div>
               <p className="mut phase-copy">
-                Phase 4 scrum records are already live. The team monitoring
-                board is added in Phase 7 without duplicating those records.
+                {activeScrums} active Scrum {activeScrums === 1 ? "cycle" : "cycles"}
+                {" · "}
+                {openBlockers} open {openBlockers === 1 ? "blocker" : "blockers"}.
               </p>
             </div>
           </div>

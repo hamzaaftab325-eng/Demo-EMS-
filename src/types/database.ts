@@ -1811,6 +1811,22 @@ export type Database = {
         Args: { p_entry_item_id: string; p_note?: string; p_percent: number }
         Returns: Json
       }
+      phase7_assign_scrum_task: {
+        Args: {
+          p_description?: string
+          p_employee_id: string
+          p_project_code: string
+          p_title: string
+        }
+        Returns: string
+      }
+      phase7_resolve_scrum_obstacle: {
+        Args: {
+          p_obstacle_id: string
+          p_resolution_note: string
+        }
+        Returns: string
+      }
       presence_heartbeat: {
         Args: { p_last_activity_at?: string }
         Returns: Json

@@ -450,3 +450,84 @@ label.f input,label.f select{width:100%}
   .request-trail-row>strong{grid-column:2}
   .request-trail-comment{grid-column:2}
 }
+
+
+/* Phase 7 — management dashboard, Scrum board and reports */
+.phase7-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin:0 0 16px}
+.phase7-stats .stat{min-height:86px}
+.phase7-manager-task{margin-bottom:16px}
+.phase7-manager-task .hd{align-items:flex-start}
+.phase7-manager-task .hd p{margin:4px 0 0;font-size:12px;max-width:760px}
+.phase7-task-form{display:grid;grid-template-columns:minmax(170px,1.1fr) 110px minmax(210px,1.4fr) minmax(220px,1.5fr) auto;gap:10px;align-items:end}
+.phase7-task-form .f{margin:0}
+.phase7-task-form input,.phase7-task-form select{width:100%}
+.phase7-filters{display:grid;grid-template-columns:150px minmax(190px,1.2fr) minmax(160px,1fr) minmax(160px,1fr) 150px auto;gap:9px;margin-bottom:16px}
+.phase7-scrum-list{display:grid;gap:14px}
+.phase7-scrum-card .bd{display:grid;gap:14px}
+.phase7-scrum-head{display:flex;justify-content:space-between;align-items:flex-start;gap:14px}
+.phase7-scrum-head .who>span:last-child{display:grid;gap:2px}
+.phase7-scrum-head .who small{display:block;color:var(--mfg);font-size:11px}
+.phase7-scrum-meta{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px}
+.phase7-scrum-meta span{display:grid;gap:3px;padding:9px 10px;border:1px solid var(--border);border-radius:8px;background:var(--muted);font-size:11px;color:var(--mfg)}
+.phase7-scrum-meta b{color:var(--fg);font-size:12px}
+.phase7-progress-summary{display:grid;grid-template-columns:minmax(180px,auto) minmax(220px,1fr);gap:14px;align-items:center}
+.phase7-progress-summary>div{display:grid;gap:2px}
+.phase7-progress-summary .bar,.phase7-task-progress .bar{height:8px;border-radius:999px;overflow:hidden;background:var(--muted)}
+.phase7-progress-summary .bar i,.phase7-task-progress .bar i{display:block;height:100%;background:var(--cyan);border-radius:inherit}
+.phase7-scrum-columns{display:grid;grid-template-columns:1.1fr .9fr;gap:16px}
+.phase7-scrum-columns h3{font-size:13px;margin-bottom:8px}
+.phase7-task-list,.phase7-blocker-list{display:grid;gap:8px}
+.phase7-task-row{display:grid;grid-template-columns:minmax(0,1fr) 140px;gap:12px;align-items:center;padding:10px 11px;border:1px solid var(--border);border-radius:8px;background:var(--surface)}
+.phase7-task-row>div:first-child{display:grid;gap:3px;min-width:0}
+.phase7-task-row strong{font-size:13px}
+.phase7-task-row small{color:var(--mfg);font-size:11px}
+.phase7-task-progress{display:grid;grid-template-columns:42px 1fr;gap:8px;align-items:center}
+.phase7-task-progress b{font-size:12px;text-align:right}
+.phase7-blocker{display:grid;gap:8px;padding:10px 11px;border:1px solid var(--border);border-radius:8px;background:var(--surface)}
+.phase7-blocker.open{border-color:color-mix(in srgb,var(--away) 40%,var(--border));background:color-mix(in srgb,var(--away) 5%,var(--surface))}
+.phase7-blocker>div:first-child{display:grid;gap:3px}
+.phase7-blocker strong{font-size:13px}
+.phase7-blocker small{color:var(--mfg);font-size:11px;text-transform:capitalize}
+.phase7-resolve-form{display:grid;grid-template-columns:minmax(160px,1fr) auto;gap:8px}
+.phase7-resolve-form input{width:100%}
+.phase7-assigned-backlog{display:grid;gap:8px;padding-top:12px;border-top:1px solid var(--border)}
+.phase7-assigned-backlog>div{display:flex;gap:6px;flex-wrap:wrap}
+.phase7-assigned-backlog span{padding:5px 8px;border:1px solid color-mix(in srgb,var(--cyan) 30%,var(--border));border-radius:999px;background:color-mix(in srgb,var(--cyan) 5%,var(--surface));font-size:11px}
+.phase7-report-actions{display:flex;gap:7px;flex-wrap:wrap;justify-content:flex-end}
+.phase7-report-filters{display:grid;grid-template-columns:145px 145px minmax(180px,1.2fr) minmax(160px,1fr) minmax(160px,1fr) 160px 170px auto;gap:8px;margin-bottom:16px}
+.phase7-report-stats{grid-template-columns:repeat(auto-fit,minmax(120px,1fr))}
+.phase7-report-table{overflow:auto}
+.phase7-report-table table{min-width:780px}
+.phase7-report-table td small{display:block;color:var(--mfg);font-size:10px;margin-top:2px}
+.phase7-capitalize{text-transform:capitalize}
+@media(max-width:1180px){
+  .phase7-task-form{grid-template-columns:1fr 110px 1.4fr}
+  .phase7-task-description{grid-column:1/3}
+  .phase7-task-form>.btn{justify-self:start}
+  .phase7-report-filters{grid-template-columns:repeat(4,minmax(0,1fr))}
+  .phase7-report-filters .filter-search{grid-column:span 2}
+}
+@media(max-width:900px){
+  .phase7-filters{grid-template-columns:1fr 1fr 1fr}
+  .phase7-scrum-meta{grid-template-columns:repeat(3,1fr)}
+  .phase7-scrum-columns{grid-template-columns:1fr}
+  .phase7-progress-summary{grid-template-columns:1fr}
+  .phase7-report-filters{grid-template-columns:1fr 1fr}
+  .phase7-report-filters .filter-search{grid-column:1/-1}
+  .phase7-report-actions{justify-content:flex-start}
+}
+@media(max-width:620px){
+  .phase7-task-form{grid-template-columns:1fr}
+  .phase7-task-description{grid-column:auto}
+  .phase7-task-form>.btn{width:100%;justify-self:stretch}
+  .phase7-filters,.phase7-report-filters{grid-template-columns:1fr}
+  .phase7-report-filters .filter-search{grid-column:auto}
+  .phase7-scrum-head{flex-direction:column}
+  .phase7-scrum-meta{grid-template-columns:1fr 1fr}
+  .phase7-task-row{grid-template-columns:1fr}
+  .phase7-task-progress{grid-template-columns:42px 1fr}
+  .phase7-resolve-form{grid-template-columns:1fr}
+  .phase7-resolve-form .btn{width:100%}
+  .phase7-report-actions{width:100%}
+  .phase7-report-actions .btn{flex:1;justify-content:center}
+}
