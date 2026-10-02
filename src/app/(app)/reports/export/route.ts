@@ -48,7 +48,7 @@ export async function GET(request: NextRequest) {
   }
 
   const today = currentDateFor(profile.timezone);
-  let end = validDate(request.nextUrl.searchParams.get("end")) ?? today;
+  const end = validDate(request.nextUrl.searchParams.get("end")) ?? today;
   let start =
     validDate(request.nextUrl.searchParams.get("start")) ?? shiftDate(end, -6);
 

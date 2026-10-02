@@ -71,7 +71,7 @@ export default async function ReportsPage({
   const current = await requireRole(TEAM_ROLES);
   const params = await searchParams;
   const today = currentDateFor(current.timezone);
-  let end = validDate(single(params.end)) ?? today;
+  const end = validDate(single(params.end)) ?? today;
   let start = validDate(single(params.start)) ?? shiftDate(end, -6);
   let rangeClamped = false;
 
