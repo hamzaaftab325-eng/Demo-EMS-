@@ -1847,7 +1847,7 @@ export type Database = {
       phase8_save_holiday: {
         Args: {
           p_country_code: string | null
-          p_department_id: string
+          p_department_id: string | null
           p_holiday_date: string
           p_holiday_id: string | null
           p_is_company_wide: boolean
@@ -1877,7 +1877,7 @@ export type Database = {
           p_grace_minutes: number
           p_name: string
           p_reason?: string
-          p_schedule_id: string
+          p_schedule_id: string | null
           p_schedule_type: Database["public"]["Enums"]["schedule_type"]
           p_start_time: string | null
           p_timezone: string
