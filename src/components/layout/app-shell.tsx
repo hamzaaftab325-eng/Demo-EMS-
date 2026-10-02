@@ -7,6 +7,7 @@ import { Bell, LogOut, Menu, Moon } from "lucide-react";
 import { logout } from "@/app/auth/actions";
 import { NavigationLinks } from "@/components/layout/navigation-links";
 import { PresenceHeartbeat } from "@/components/presence/presence-heartbeat";
+import { RealtimeRefresh } from "@/components/realtime/realtime-refresh";
 import { roleLabel } from "@/lib/navigation";
 import type { CurrentProfile } from "@/lib/auth/current-profile";
 
@@ -54,6 +55,7 @@ export function AppShell({
   return (
     <div className="app">
       <PresenceHeartbeat />
+      <RealtimeRefresh tables={["notifications"]} />
       {menuOpen ? (
         <button
           className="mobile-backdrop"

@@ -85,6 +85,7 @@ export type RequestCenter = {
   leaveTypes: LeaveTypeOption[];
   leaveBalances: LeaveBalanceView[];
   approverCandidates: ApproverCandidate[];
+  focusedRequest: RequestView | null;
 };
 
 function dateInZone(timeZone: string) {
@@ -245,6 +246,7 @@ function managerAncestors(
 
 export async function getRequestCenter(
   profile: CurrentProfile,
+  focusedRequestId?: string,
 ): Promise<RequestCenter> {
   const supabase = await createClient();
   const today = dateInZone(profile.timezone);
@@ -299,6 +301,22 @@ export async function getRequestCenter(
     managerResult.error
   ) {
     throw new Error("Could not load requests.");
+  }
+
+  let focusedRow: RequestDbRow | null = null;
+
+  if (focusedRequestId) {
+    const { data: focusedData, error: focusedError } = await supabase
+      .from("requests")
+      .select("*")
+      .eq("id", focusedRequestId)
+      .maybeSingle();
+
+    if (focusedError) {
+      throw new Error("Could not load the linked request.");
+    }
+
+    focusedRow = focusedData;
   }
 
   const leaveTypes: LeaveTypeOption[] = (leaveTypeResult.data ?? []).map(
@@ -398,6 +416,7 @@ export async function getRequestCenter(
     ...(ownResult.data ?? []),
     ...approvalRequests,
     ...adminRequests,
+    ...(focusedRow ? [focusedRow] : []),
   ]);
   const allViews = await loadRequestViews(profile, allRows, leaveTypes);
 
@@ -459,6 +478,10 @@ export async function getRequestCenter(
     leaveTypes,
     leaveBalances,
     approverCandidates,
+    focusedRequest:
+      focusedRow == null
+        ? null
+        : allViews.find((row) => row.id === focusedRow.id) ?? null,
   };
 }
 

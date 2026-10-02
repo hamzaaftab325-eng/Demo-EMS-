@@ -403,3 +403,50 @@ label.f input,label.f select{width:100%}
 .employee-control-form .f{margin:0}
 .employee-control-form input[type=text]{width:100%}
 .employee-delete-form{padding:12px;border:1px solid color-mix(in srgb,var(--red) 28%,var(--border));border-radius:8px;background:color-mix(in srgb,var(--red) 4%,var(--surface))}
+
+
+/* Phase 6 final UX completion */
+.btn:disabled{opacity:.58;cursor:not-allowed;pointer-events:none}
+.request-create-shell{margin-bottom:22px}
+.request-create-toolbar{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin-bottom:10px}
+.request-create-toolbar h2{font-size:17px}
+.request-create-toolbar p{margin:4px 0 0;font-size:12px}
+.request-type-tabs{display:flex;gap:4px;padding:4px;border:1px solid var(--border);border-radius:9px;background:var(--muted);overflow-x:auto}
+.request-type-tabs a{white-space:nowrap;text-decoration:none;color:var(--mfg);font-size:12px;font-weight:600;padding:7px 10px;border-radius:6px}
+.request-type-tabs a:hover{color:var(--fg);background:var(--surface)}
+.request-type-tabs a.on{background:var(--surface);color:var(--fg);box-shadow:0 1px 2px rgba(0,0,0,.08)}
+.request-create-shell .request-create-card{max-width:760px}
+.request-primary-submit{justify-self:start}
+.request-permanent-note{display:grid;align-content:center;gap:3px;min-height:58px;padding:9px 11px;border:1px dashed color-mix(in srgb,var(--cyan) 45%,var(--border));border-radius:8px;background:color-mix(in srgb,var(--cyan) 5%,var(--surface));font-size:12px}
+.request-permanent-note span{color:var(--mfg)}
+.request-timestamp{display:block;margin-top:4px;color:var(--mfg);font-size:11px}
+.request-trail{position:relative;display:grid;gap:0;padding-left:2px}
+.request-trail-row{position:relative;display:grid;grid-template-columns:14px minmax(0,1fr) auto;gap:2px 10px;padding:9px 0;border-top:1px solid var(--border);font-size:12px}
+.request-trail-row>div{display:grid;gap:2px}
+.request-trail-row>div>small{color:var(--mfg)}
+.request-trail-dot{width:9px;height:9px;border-radius:999px;margin-top:4px;background:var(--offline);box-shadow:0 0 0 3px var(--surface)}
+.request-trail-approved .request-trail-dot{background:var(--active)}
+.request-trail-pending .request-trail-dot{background:var(--meeting)}
+.request-trail-rejected .request-trail-dot{background:var(--red)}
+.request-trail-comment{grid-column:2/-1;color:var(--mfg);padding-top:2px}
+.request-item-focus{border-color:color-mix(in srgb,var(--cyan) 65%,var(--border));box-shadow:0 0 0 3px color-mix(in srgb,var(--cyan) 12%,transparent);scroll-margin-top:18px}
+.request-history-filters{display:grid;grid-template-columns:160px 170px minmax(220px,1fr) auto auto;gap:10px;align-items:end;margin:0 0 12px;padding:12px;border:1px solid var(--border);border-radius:9px;background:var(--muted)}
+.request-history-filters .f{margin:0}
+.request-history-search input{width:100%}
+.request-decision-actions .btn{min-width:92px}
+@media(max-width:900px){
+  .request-history-filters{grid-template-columns:1fr 1fr}
+  .request-history-search{grid-column:1/-1}
+  .request-create-toolbar{align-items:flex-start;flex-direction:column}
+}
+@media(max-width:620px){
+  .request-history-filters{grid-template-columns:1fr}
+  .request-history-search{grid-column:auto}
+  .request-history-filters .btn{width:100%}
+  .request-type-tabs{width:100%}
+  .request-decision-actions{width:100%}
+  .request-decision-actions .btn{flex:1}
+  .request-trail-row{grid-template-columns:12px minmax(0,1fr)}
+  .request-trail-row>strong{grid-column:2}
+  .request-trail-comment{grid-column:2}
+}

@@ -64,3 +64,22 @@ GitHub Actions runs this gate before lint, TypeScript and the production build.
 ## Exit status
 
 **Phase 6 — Requests & Approvals: 100% complete.**
+
+
+## Final UI and presentation completion
+
+The final Phase 6 pass also closes the presentation and interaction gaps found after backend QA:
+
+- Requests and approval queues refresh through Supabase Realtime when request or approval rows change.
+- The global notification badge refreshes from realtime notification changes.
+- Submit, approve, reject, cancel, reassign and notification actions disable while pending to prevent duplicate clicks.
+- Approval, rejection, cancellation and reassignment actions include explicit confirmation.
+- Permanent shift changes no longer ask for a meaningless end date; the UI clearly shows that the change is ongoing from the effective start date.
+- Notifications open and highlight the exact request under the user's current RLS scope and mark that notification read.
+- Request cards show submitted/completed timestamps and an approval stepper with decision timestamps and comments.
+- Request history supports type, status and free-text/request-number filtering.
+- Success/error notices expose status/alert semantics for assistive technology.
+- Request creation shows one request type at a time instead of three dense forms.
+- Desktop, tablet and mobile layouts are covered by responsive request/filter/action styles.
+
+These UI improvements do not create demo records or weaken authorization. Empty states remain valid when the demo contains no employee hierarchy or requests.

@@ -1,7 +1,11 @@
+import Link from "next/link";
 import {
   PageHead,
   StatusPill,
 } from "@/components/shared/prototype";
+import { RealtimeRefresh } from "@/components/realtime/realtime-refresh";
+import { RequestSubmitButton } from "@/components/requests/request-submit-button";
+import { ShiftDateFields } from "@/components/requests/shift-date-fields";
 import { requireCurrentProfile } from "@/lib/auth/current-profile";
 import {
   getRequestCenter,
@@ -93,6 +97,16 @@ function formatTime(value: string) {
   return value.slice(0, 5);
 }
 
+function formatDateTime(value: string | null, timeZone: string) {
+  if (!value) return "Not recorded";
+
+  return new Intl.DateTimeFormat("en-US", {
+    timeZone,
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(new Date(value));
+}
+
 function requestDetail(request: RequestView) {
   if (request.leave) {
     return (
@@ -151,11 +165,26 @@ function validReassignmentCandidates(
   });
 }
 
-function RequestTrail({ request }: { request: RequestView }) {
-  if (request.approvals.length === 0) return null;
-
+function RequestTrail({
+  request,
+  timeZone,
+}: {
+  request: RequestView;
+  timeZone: string;
+}) {
   return (
-    <div className="request-trail">
+    <div className="request-trail" aria-label="Approval progress">
+      <div className="request-trail-row request-trail-approved">
+        <i className="request-trail-dot" aria-hidden="true" />
+        <div>
+          <span>Submitted</span>
+          <small>
+            {formatDateTime(request.submittedAt ?? request.createdAt, timeZone)}
+          </small>
+        </div>
+        <strong>Submitted</strong>
+      </div>
+
       {request.approvals.map((approval) => {
         const cancelled =
           request.status === "cancelled" && approval.decision === "pending";
@@ -166,15 +195,40 @@ function RequestTrail({ request }: { request: RequestView }) {
             : approval.decision === "approved"
               ? "Approved"
               : "Rejected";
+        const state =
+          cancelled || approval.decision === "rejected"
+            ? "rejected"
+            : approval.decision === "approved"
+              ? "approved"
+              : "pending";
 
         return (
-          <div className="request-trail-row" key={approval.id}>
-            <span>
-              {approval.stage === "manager" ? "Manager" : "Final"} ·{" "}
-              {approval.approverName}
-            </span>
+          <div
+            className={"request-trail-row request-trail-" + state}
+            key={approval.id}
+          >
+            <i className="request-trail-dot" aria-hidden="true" />
+            <div>
+              <span>
+                {approval.stage === "manager"
+                  ? "Manager review"
+                  : "Final review"}{" "}
+                · {approval.approverName}
+              </span>
+              <small>
+                {approval.decidedAt
+                  ? formatDateTime(approval.decidedAt, timeZone)
+                  : cancelled
+                    ? "Request cancelled before decision"
+                    : "Awaiting decision"}
+              </small>
+            </div>
             <strong>{decision}</strong>
-            {approval.comment ? <small>{approval.comment}</small> : null}
+            {approval.comment ? (
+              <small className="request-trail-comment">
+                {approval.comment}
+              </small>
+            ) : null}
           </div>
         );
       })}
@@ -191,54 +245,245 @@ export default async function RequestsPage({
   const params = await searchParams;
   const success = single(params.success);
   const error = single(params.error);
-  const center = await getRequestCenter(current);
+  const focusRequestId = single(params.request) ?? "";
+  const createModeValue = single(params.new);
+  const createMode =
+    createModeValue === "shift" || createModeValue === "hour"
+      ? createModeValue
+      : "leave";
+  const historyType = single(params.history_type) ?? "";
+  const historyStatus = single(params.history_status) ?? "";
+  const historyQuery = (single(params.q) ?? "").trim().toLowerCase();
+  const center = await getRequestCenter(current, focusRequestId || undefined);
   const today = dateInZone(current.timezone);
   const trackedBalances = center.leaveBalances;
+  const filteredHistory = center.myRequests.filter((request) => {
+    if (historyType && request.requestType !== historyType) return false;
+    if (historyStatus && request.status !== historyStatus) return false;
+    if (!historyQuery) return true;
+
+    const haystack = [
+      String(request.requestNumber),
+      typeLabel(request.requestType),
+      statusLabel(request.status),
+      request.startDate,
+      request.endDate,
+      request.reason ?? "",
+      request.leave?.leaveTypeName ?? "",
+      request.employeeName,
+    ]
+      .join(" ")
+      .toLowerCase();
+
+    return haystack.includes(historyQuery);
+  });
+  const focusSection = center.pendingApprovals.some(
+    (request) => request.id === focusRequestId,
+  )
+    ? "pending"
+    : center.myRequests.some((request) => request.id === focusRequestId)
+      ? "history"
+      : center.adminPendingRequests.some(
+            (request) => request.id === focusRequestId,
+          )
+        ? "admin"
+        : center.focusedRequest
+          ? "linked"
+          : null;
+  const historyHasFilters = Boolean(
+    historyType || historyStatus || historyQuery,
+  );
 
   return (
     <>
+      <RealtimeRefresh tables={["requests", "request_approvals"]} />
+
       <PageHead
         title="Requests"
         subtitle="Leave, shift changes and hour changes with audited approvals"
       />
 
       {success ? (
-        <div className="request-notice request-notice-success">{success}</div>
+        <div
+          className="request-notice request-notice-success"
+          role="status"
+          aria-live="polite"
+        >
+          {success}
+        </div>
       ) : null}
 
       {error ? (
-        <div className="request-notice request-notice-error">{error}</div>
+        <div
+          className="request-notice request-notice-error"
+          role="alert"
+          aria-live="assertive"
+        >
+          {error}
+        </div>
       ) : null}
 
       {center.canSubmit ? (
-        <section className="request-create-grid" aria-label="Create a request">
-          <div className="card request-create-card">
-            <div className="hd">
-              <div>
-                <h2>Leave request</h2>
-                <p className="mut">
-                  Working days exclude weekends and configured holidays.
-                </p>
-              </div>
+        <section
+          id="new-request"
+          className="request-create-shell"
+          aria-label="Create a request"
+        >
+          <div className="request-create-toolbar">
+            <div>
+              <h2>New request</h2>
+              <p className="mut">
+                Choose one request type. All submissions follow the audited
+                approval workflow.
+              </p>
             </div>
-            <form action={createLeaveRequest} className="bd request-form">
-              <label className="f">
-                <span>Leave type *</span>
-                <select name="leave_type_id" required defaultValue="">
-                  <option value="" disabled>
-                    Select leave type
-                  </option>
-                  {center.leaveTypes.map((leaveType) => (
-                    <option value={leaveType.id} key={leaveType.id}>
-                      {leaveType.name}
+            <nav className="request-type-tabs" aria-label="Request type">
+              <Link
+                href="/requests?new=leave#new-request"
+                className={createMode === "leave" ? "on" : undefined}
+                aria-current={createMode === "leave" ? "page" : undefined}
+              >
+                Leave
+              </Link>
+              <Link
+                href="/requests?new=shift#new-request"
+                className={createMode === "shift" ? "on" : undefined}
+                aria-current={createMode === "shift" ? "page" : undefined}
+              >
+                Shift change
+              </Link>
+              <Link
+                href="/requests?new=hour#new-request"
+                className={createMode === "hour" ? "on" : undefined}
+                aria-current={createMode === "hour" ? "page" : undefined}
+              >
+                Hour change
+              </Link>
+            </nav>
+          </div>
+
+          {createMode === "leave" ? (
+            <div className="card request-create-card">
+              <div className="hd">
+                <div>
+                  <h2>Leave request</h2>
+                  <p className="mut">
+                    Working days exclude weekends and configured holidays.
+                  </p>
+                </div>
+              </div>
+              <form action={createLeaveRequest} className="bd request-form">
+                <label className="f">
+                  <span>Leave type *</span>
+                  <select name="leave_type_id" required defaultValue="">
+                    <option value="" disabled>
+                      Select leave type
                     </option>
-                  ))}
-                </select>
-              </label>
+                    {center.leaveTypes.map((leaveType) => (
+                      <option value={leaveType.id} key={leaveType.id}>
+                        {leaveType.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
 
-              <div className="request-two-col">
+                <div className="request-two-col">
+                  <label className="f">
+                    <span>Start date *</span>
+                    <input
+                      type="date"
+                      name="start_date"
+                      min={today}
+                      defaultValue={today}
+                      required
+                    />
+                  </label>
+                  <label className="f">
+                    <span>End date *</span>
+                    <input
+                      type="date"
+                      name="end_date"
+                      min={today}
+                      defaultValue={today}
+                      required
+                    />
+                  </label>
+                </div>
+
                 <label className="f">
-                  <span>Start date *</span>
+                  <span>Reason / note</span>
+                  <textarea
+                    name="reason"
+                    rows={3}
+                    placeholder="Add context for your approver"
+                  />
+                </label>
+
+                <RequestSubmitButton
+                  className="btn pri request-primary-submit"
+                  pendingLabel="Submitting leave…"
+                >
+                  Submit leave request
+                </RequestSubmitButton>
+              </form>
+            </div>
+          ) : null}
+
+          {createMode === "shift" ? (
+            <div className="card request-create-card">
+              <div className="hd">
+                <div>
+                  <h2>Shift change</h2>
+                  <p className="mut">
+                    Request a temporary date range or an ongoing new shift.
+                  </p>
+                </div>
+              </div>
+              <form action={createScheduleRequest} className="bd request-form">
+                <input type="hidden" name="request_type" value="shift_change" />
+                <ShiftDateFields today={today} />
+
+                <div className="request-two-col">
+                  <label className="f">
+                    <span>New start *</span>
+                    <input type="time" name="new_start_time" required />
+                  </label>
+                  <label className="f">
+                    <span>New end *</span>
+                    <input type="time" name="new_end_time" required />
+                  </label>
+                </div>
+
+                <label className="f">
+                  <span>Reason *</span>
+                  <textarea name="reason" rows={3} required />
+                </label>
+
+                <RequestSubmitButton
+                  className="btn pri request-primary-submit"
+                  pendingLabel="Submitting shift change…"
+                >
+                  Submit shift change
+                </RequestSubmitButton>
+              </form>
+            </div>
+          ) : null}
+
+          {createMode === "hour" ? (
+            <div className="card request-create-card">
+              <div className="hd">
+                <div>
+                  <h2>Hour change</h2>
+                  <p className="mut">
+                    Temporary working-hour change for one specific date.
+                  </p>
+                </div>
+              </div>
+              <form action={createScheduleRequest} className="bd request-form">
+                <input type="hidden" name="request_type" value="hour_change" />
+
+                <label className="f">
+                  <span>Date *</span>
                   <input
                     type="date"
                     name="start_date"
@@ -247,139 +492,32 @@ export default async function RequestsPage({
                     required
                   />
                 </label>
+
+                <div className="request-two-col">
+                  <label className="f">
+                    <span>New start *</span>
+                    <input type="time" name="new_start_time" required />
+                  </label>
+                  <label className="f">
+                    <span>New end *</span>
+                    <input type="time" name="new_end_time" required />
+                  </label>
+                </div>
+
                 <label className="f">
-                  <span>End date *</span>
-                  <input
-                    type="date"
-                    name="end_date"
-                    min={today}
-                    defaultValue={today}
-                    required
-                  />
+                  <span>Reason *</span>
+                  <textarea name="reason" rows={3} required />
                 </label>
-              </div>
 
-              <label className="f">
-                <span>Reason / note</span>
-                <textarea
-                  name="reason"
-                  rows={3}
-                  placeholder="Add context for your approver"
-                />
-              </label>
-
-              <button className="btn pri" type="submit">
-                Submit leave request
-              </button>
-            </form>
-          </div>
-
-          <div className="card request-create-card">
-            <div className="hd">
-              <div>
-                <h2>Shift change</h2>
-                <p className="mut">
-                  Request temporary dates or a permanent new shift.
-                </p>
-              </div>
+                <RequestSubmitButton
+                  className="btn pri request-primary-submit"
+                  pendingLabel="Submitting hour change…"
+                >
+                  Submit hour change
+                </RequestSubmitButton>
+              </form>
             </div>
-            <form action={createScheduleRequest} className="bd request-form">
-              <input type="hidden" name="request_type" value="shift_change" />
-
-              <div className="request-two-col">
-                <label className="f">
-                  <span>Start date *</span>
-                  <input
-                    type="date"
-                    name="start_date"
-                    min={today}
-                    defaultValue={today}
-                    required
-                  />
-                </label>
-                <label className="f">
-                  <span>End date *</span>
-                  <input
-                    type="date"
-                    name="end_date"
-                    min={today}
-                    defaultValue={today}
-                    required
-                  />
-                </label>
-              </div>
-
-              <div className="request-two-col">
-                <label className="f">
-                  <span>New start *</span>
-                  <input type="time" name="new_start_time" required />
-                </label>
-                <label className="f">
-                  <span>New end *</span>
-                  <input type="time" name="new_end_time" required />
-                </label>
-              </div>
-
-              <label className="request-check">
-                <input type="checkbox" name="is_permanent" />
-                <span>Make this the ongoing schedule from the start date</span>
-              </label>
-
-              <label className="f">
-                <span>Reason *</span>
-                <textarea name="reason" rows={3} required />
-              </label>
-
-              <button className="btn pri" type="submit">
-                Submit shift change
-              </button>
-            </form>
-          </div>
-
-          <div className="card request-create-card">
-            <div className="hd">
-              <div>
-                <h2>Hour change</h2>
-                <p className="mut">
-                  Temporary working-hour change for one specific date.
-                </p>
-              </div>
-            </div>
-            <form action={createScheduleRequest} className="bd request-form">
-              <input type="hidden" name="request_type" value="hour_change" />
-
-              <label className="f">
-                <span>Date *</span>
-                <input
-                  type="date"
-                  name="start_date"
-                  min={today}
-                  defaultValue={today}
-                  required
-                />
-              </label>
-
-              <div className="request-two-col">
-                <label className="f">
-                  <span>New start *</span>
-                  <input type="time" name="new_start_time" required />
-                </label>
-                <label className="f">
-                  <span>New end *</span>
-                  <input type="time" name="new_end_time" required />
-                </label>
-              </div>
-
-              <label className="f">
-                <span>Reason *</span>
-                <textarea name="reason" rows={3} required />
-              </label>
-
-              <button className="btn pri" type="submit">
-                Submit hour change
-              </button>
-            </form>
-          </div>
+          ) : null}
         </section>
       ) : (
         <div className="card request-no-approver">
@@ -418,6 +556,55 @@ export default async function RequestsPage({
         </section>
       ) : null}
 
+      {focusRequestId && !center.focusedRequest ? (
+        <div className="request-notice" role="status">
+          This linked request is no longer available in your current access
+          scope.
+        </div>
+      ) : null}
+
+      {center.focusedRequest && focusSection === "linked" ? (
+        <section className="request-section" aria-label="Linked request">
+          <div className="request-section-head">
+            <div>
+              <h2>Linked request</h2>
+              <p className="mut">Opened from a workflow notification.</p>
+            </div>
+          </div>
+          <article
+            id="focused-request"
+            className="card request-item request-item-focus"
+          >
+            <div className="bd">
+              <div className="request-item-head">
+                <div>
+                  <span className="request-kicker">
+                    Request #{center.focusedRequest.requestNumber} ·{" "}
+                    {typeLabel(center.focusedRequest.requestType)}
+                  </span>
+                  <h3>{center.focusedRequest.employeeName}</h3>
+                  <p className="mut">{dateRange(center.focusedRequest)}</p>
+                </div>
+                <StatusPill
+                  label={statusLabel(center.focusedRequest.status)}
+                  tone={statusTone(center.focusedRequest.status)}
+                />
+              </div>
+              <div className="request-detail-row">
+                <strong>{requestDetail(center.focusedRequest)}</strong>
+                {center.focusedRequest.reason ? (
+                  <span>{center.focusedRequest.reason}</span>
+                ) : null}
+              </div>
+              <RequestTrail
+                request={center.focusedRequest}
+                timeZone={current.timezone}
+              />
+            </div>
+          </article>
+        </section>
+      ) : null}
+
       <section id="approvals" className="request-section">
         <div className="request-section-head">
           <div>
@@ -431,7 +618,20 @@ export default async function RequestsPage({
 
         <div className="request-list">
           {center.pendingApprovals.map((request) => (
-            <article className="card request-item request-approval" key={request.id}>
+            <article
+              id={
+                focusSection === "pending" && request.id === focusRequestId
+                  ? "focused-request"
+                  : undefined
+              }
+              className={
+                "card request-item request-approval" +
+                (focusSection === "pending" && request.id === focusRequestId
+                  ? " request-item-focus"
+                  : "")
+              }
+              key={request.id}
+            >
               <div className="bd">
                 <div className="request-item-head">
                   <div>
@@ -443,6 +643,10 @@ export default async function RequestsPage({
                       {request.employeeCode ? request.employeeCode + " · " : ""}
                       {dateRange(request)}
                     </p>
+                    <small className="request-timestamp">
+                      Submitted{" "}
+                      {formatDateTime(request.submittedAt, current.timezone)}
+                    </small>
                   </div>
                   <StatusPill
                     label={statusLabel(request.status)}
@@ -455,7 +659,7 @@ export default async function RequestsPage({
                   {request.reason ? <span>{request.reason}</span> : null}
                 </div>
 
-                <RequestTrail request={request} />
+                <RequestTrail request={request} timeZone={current.timezone} />
 
                 <form action={decideRequest} className="request-decision-form">
                   <input type="hidden" name="request_id" value={request.id} />
@@ -468,22 +672,24 @@ export default async function RequestsPage({
                     />
                   </label>
                   <div className="request-decision-actions">
-                    <button
+                    <RequestSubmitButton
                       className="btn pri"
-                      type="submit"
                       name="decision"
                       value="approved"
+                      pendingLabel="Approving…"
+                      confirmMessage="Approve this request? It may move to final review or apply immediately if this is the final approval."
                     >
                       Approve
-                    </button>
-                    <button
+                    </RequestSubmitButton>
+                    <RequestSubmitButton
                       className="btn danger"
-                      type="submit"
                       name="decision"
                       value="rejected"
+                      pendingLabel="Rejecting…"
+                      confirmMessage="Reject this request? The request will be closed."
                     >
                       Reject
-                    </button>
+                    </RequestSubmitButton>
                   </div>
                 </form>
               </div>
@@ -531,7 +737,17 @@ export default async function RequestsPage({
 
               return (
                 <article
-                  className="card request-item"
+                  id={
+                    focusSection === "admin" && request.id === focusRequestId
+                      ? "focused-request"
+                      : undefined
+                  }
+                  className={
+                    "card request-item" +
+                    (focusSection === "admin" && request.id === focusRequestId
+                      ? " request-item-focus"
+                      : "")
+                  }
                   key={"admin-" + request.id}
                 >
                   <div className="bd">
@@ -557,6 +773,11 @@ export default async function RequestsPage({
                       <strong>{requestDetail(request)}</strong>
                       {request.reason ? <span>{request.reason}</span> : null}
                     </div>
+
+                    <RequestTrail
+                      request={request}
+                      timeZone={current.timezone}
+                    />
 
                     {candidates.length > 0 ? (
                       <form
@@ -596,9 +817,12 @@ export default async function RequestsPage({
                             placeholder="Manager unavailable, reporting change, escalation…"
                           />
                         </label>
-                        <button className="btn" type="submit">
+                        <RequestSubmitButton
+                          pendingLabel="Reassigning…"
+                          confirmMessage="Reassign this approval to the selected approver?"
+                        >
                           Reassign
-                        </button>
+                        </RequestSubmitButton>
                       </form>
                     ) : (
                       <p className="mut">
@@ -624,7 +848,7 @@ export default async function RequestsPage({
         </section>
       ) : null}
 
-      <section className="request-section">
+      <section id="history" className="request-section">
         <div className="request-section-head">
           <div>
             <h2>My request history</h2>
@@ -632,18 +856,77 @@ export default async function RequestsPage({
               Approval history and final side effects are persisted in Supabase.
             </p>
           </div>
-          <span className="request-count">{center.myRequests.length}</span>
+          <span className="request-count">
+            {filteredHistory.length}/{center.myRequests.length}
+          </span>
         </div>
 
+        <form className="request-history-filters" method="get">
+          <input type="hidden" name="new" value={createMode} />
+          <label className="f">
+            <span>Type</span>
+            <select name="history_type" defaultValue={historyType}>
+              <option value="">All types</option>
+              <option value="leave">Leave</option>
+              <option value="shift_change">Shift change</option>
+              <option value="hour_change">Hour change</option>
+            </select>
+          </label>
+          <label className="f">
+            <span>Status</span>
+            <select name="history_status" defaultValue={historyStatus}>
+              <option value="">All statuses</option>
+              <option value="pending_manager">Manager review</option>
+              <option value="pending_final">Final review</option>
+              <option value="approved">Approved</option>
+              <option value="rejected">Rejected</option>
+              <option value="cancelled">Cancelled</option>
+            </select>
+          </label>
+          <label className="f request-history-search">
+            <span>Search</span>
+            <input
+              name="q"
+              type="search"
+              defaultValue={single(params.q) ?? ""}
+              placeholder="Request #, leave type, reason…"
+            />
+          </label>
+          <button className="btn" type="submit">
+            Apply filters
+          </button>
+          {historyHasFilters ? (
+            <Link
+              className="btn ghost"
+              href={"/requests?new=" + createMode + "#history"}
+            >
+              Clear
+            </Link>
+          ) : null}
+        </form>
+
         <div className="request-list">
-          {center.myRequests.map((request) => {
+          {filteredHistory.map((request) => {
             const canCancel =
               request.status === "draft" ||
               request.status === "pending_manager" ||
               request.status === "pending_final";
 
             return (
-              <article className="card request-item" key={request.id}>
+              <article
+                id={
+                  focusSection === "history" && request.id === focusRequestId
+                    ? "focused-request"
+                    : undefined
+                }
+                className={
+                  "card request-item" +
+                  (focusSection === "history" && request.id === focusRequestId
+                    ? " request-item-focus"
+                    : "")
+                }
+                key={request.id}
+              >
                 <div className="bd">
                   <div className="request-item-head">
                     <div>
@@ -652,6 +935,17 @@ export default async function RequestsPage({
                       </span>
                       <h3>{dateRange(request)}</h3>
                       <p className="mut">{requestDetail(request)}</p>
+                      <small className="request-timestamp">
+                        Submitted{" "}
+                        {formatDateTime(request.submittedAt, current.timezone)}
+                        {request.completedAt
+                          ? " · Completed " +
+                            formatDateTime(
+                              request.completedAt,
+                              current.timezone,
+                            )
+                          : ""}
+                      </small>
                     </div>
                     <StatusPill
                       label={statusLabel(request.status)}
@@ -669,7 +963,10 @@ export default async function RequestsPage({
                     </p>
                   ) : null}
 
-                  <RequestTrail request={request} />
+                  <RequestTrail
+                    request={request}
+                    timeZone={current.timezone}
+                  />
 
                   {canCancel ? (
                     <form action={cancelRequest} className="request-cancel-form">
@@ -679,9 +976,13 @@ export default async function RequestsPage({
                         name="reason"
                         placeholder="Cancellation reason (optional)"
                       />
-                      <button className="btn ghost" type="submit">
+                      <RequestSubmitButton
+                        className="btn ghost"
+                        pendingLabel="Cancelling…"
+                        confirmMessage="Cancel this request? It will be removed from the approval queue."
+                      >
                         Cancel request
-                      </button>
+                      </RequestSubmitButton>
                     </form>
                   ) : null}
                 </div>
@@ -689,12 +990,18 @@ export default async function RequestsPage({
             );
           })}
 
-          {center.myRequests.length === 0 ? (
+          {filteredHistory.length === 0 ? (
             <div className="card">
               <div className="bd request-empty">
-                <strong>No requests submitted yet.</strong>
+                <strong>
+                  {center.myRequests.length === 0
+                    ? "No requests submitted yet."
+                    : "No requests match these filters."}
+                </strong>
                 <span className="mut">
-                  Your leave and schedule requests will appear here.
+                  {center.myRequests.length === 0
+                    ? "Your leave and schedule requests will appear here."
+                    : "Change or clear the history filters to see more requests."}
                 </span>
               </div>
             </div>

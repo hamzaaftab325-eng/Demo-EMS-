@@ -1,10 +1,12 @@
 import Link from "next/link";
 import { PageHead, StatusPill } from "@/components/shared/prototype";
+import { RequestSubmitButton } from "@/components/requests/request-submit-button";
 import { requireCurrentProfile } from "@/lib/auth/current-profile";
 import { getNotifications } from "@/lib/data/notifications";
 import {
   markAllNotificationsRead,
   markNotificationRead,
+  openRequestNotification,
 } from "./actions";
 
 export default async function NotificationsPage() {
@@ -20,9 +22,9 @@ export default async function NotificationsPage() {
         actions={
           unread > 0 ? (
             <form action={markAllNotificationsRead}>
-              <button className="btn" type="submit">
+              <RequestSubmitButton pendingLabel="Marking…">
                 Mark all read
-              </button>
+              </RequestSubmitButton>
             </form>
           ) : null
         }
@@ -60,9 +62,16 @@ export default async function NotificationsPage() {
 
               <div className="notification-actions">
                 {item.entityType === "request" && item.entityId ? (
-                  <Link className="btn ghost" href="/requests">
-                    Open requests
-                  </Link>
+                  <form action={openRequestNotification}>
+                    <input type="hidden" name="notification_id" value={item.id} />
+                    <input type="hidden" name="request_id" value={item.entityId} />
+                    <RequestSubmitButton
+                      className="btn ghost"
+                      pendingLabel="Opening…"
+                    >
+                      Open request
+                    </RequestSubmitButton>
+                  </form>
                 ) : null}
 
                 {!item.isRead ? (
@@ -72,9 +81,9 @@ export default async function NotificationsPage() {
                       name="notification_id"
                       value={item.id}
                     />
-                    <button className="btn" type="submit">
+                    <RequestSubmitButton pendingLabel="Marking…">
                       Mark read
-                    </button>
+                    </RequestSubmitButton>
                   </form>
                 ) : null}
               </div>

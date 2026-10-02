@@ -4,10 +4,17 @@ import { useEffect, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
+type RealtimeTable =
+  | "employee_presence"
+  | "workdays"
+  | "requests"
+  | "request_approvals"
+  | "notifications";
+
 export function RealtimeRefresh({
   tables,
 }: {
-  tables: Array<"employee_presence" | "workdays">;
+  tables: RealtimeTable[];
 }) {
   const router = useRouter();
   const supabase = useMemo(() => createClient(), []);
