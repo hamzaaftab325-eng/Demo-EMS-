@@ -1,0 +1,30 @@
+name: Package Final Phase 8 ZIP
+
+on:
+  push:
+    branches:
+      - artifact-package-phase8
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout final Phase 8 commit
+        uses: actions/checkout@v4
+        with:
+          ref: cffa56258bcba9fb533334cb5bb7a6aebb557f2e
+
+      - name: Create final source ZIP
+        run: |
+          zip -qr /tmp/Demo-EMS-Phase-8-Final.zip . -x '.git/*'
+
+      - name: Upload final ZIP
+        uses: actions/upload-artifact@v4
+        with:
+          name: Demo-EMS-Phase-8-Final
+          path: /tmp/Demo-EMS-Phase-8-Final.zip
+          if-no-files-found: error
+          compression-level: 0
