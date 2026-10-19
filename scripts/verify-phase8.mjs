@@ -28,6 +28,12 @@ for (const text of [
   "AdminScheduleFields",
   "AdminHolidayScopeFields",
   "RequestSubmitButton",
+  "Default schedule protected",
+  "History protected",
+  "Last active type protected",
+  "No work schedules configured.",
+  "No leave types configured.",
+  "min={editHoliday ? undefined : today}",
 ]) {
   requireText(settings, text, "Settings UI");
 }
@@ -135,6 +141,32 @@ requireText(holidayFields, "Company-wide holiday", "Holiday company-wide toggle"
 
 const shell = read("src/components/layout/app-shell.tsx");
 requireText(shell, "Phases 1–8 are live", "Phase 8 app status");
+
+const readme = read("README.md");
+requireText(
+  readme,
+  "**Phases 1–8: COMPLETE AND STABILIZED**",
+  "README Phase 8 completion status",
+);
+requireText(readme, "### Phase 1–8 finalization", "README finalization status");
+forbidText(readme, "## Next phase", "README stale next-phase section");
+forbidText(
+  readme,
+  "The dedicated management monitoring UI remains intentionally deferred",
+  "README stale Phase 7 deferral",
+);
+
+const phase8Qa = read("docs/PHASE_8_ADMIN_QA.md");
+requireText(
+  phase8Qa,
+  "## Final Phase 8 certification",
+  "Phase 8 final certification record",
+);
+requireText(
+  phase8Qa,
+  "Repository implementation status: COMPLETE",
+  "Phase 8 repository completion record",
+);
 
 const packageJson = read("package.json");
 requireText(packageJson, '"phase8:check"', "Phase 8 npm regression gate");

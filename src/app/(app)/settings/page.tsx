@@ -63,6 +63,24 @@ function scheduleDetail(schedule: {
   return "Flexible · " + minutesLabel(schedule.daily_target_minutes);
 }
 
+function dateKeyInTimeZone(date: Date, timeZone: string) {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(date);
+  const year = parts.find((part) => part.type === "year")?.value;
+  const month = parts.find((part) => part.type === "month")?.value;
+  const day = parts.find((part) => part.type === "day")?.value;
+
+  if (!year || !month || !day) {
+    return date.toISOString().slice(0, 10);
+  }
+
+  return `${year}-${month}-${day}`;
+}
+
 export default async function SettingsPage({
   searchParams,
 }: {
@@ -74,6 +92,10 @@ export default async function SettingsPage({
   const success = single(params.success);
   const error = single(params.error);
   const data = await getAdminSettingsData();
+  const today = dateKeyInTimeZone(new Date(), data.settings.timezone);
+  const activeLeaveTypeCount = data.leaveTypes.filter(
+    (leaveType) => leaveType.is_active,
+  ).length;
 
   const editSchedule = data.schedules.find(
     (schedule) =>
@@ -427,6 +449,9 @@ export default async function SettingsPage({
                       ) : (
                         <StatusPill label="Inactive" tone="offline" />
                       )}
+                      {data.settings.default_schedule_id === schedule.id ? (
+                        <StatusPill label="Default" tone="meeting" />
+                      ) : null}
                     </div>
                     <span className="mut">
                       {scheduleDetail(schedule)} · {schedule.timezone}
@@ -448,33 +473,49 @@ export default async function SettingsPage({
                     ) : null}
 
                     {!schedule.requestGenerated ? (
-                      <form action={setScheduleActive}>
-                        <input
-                          type="hidden"
-                          name="schedule_id"
-                          value={schedule.id}
-                        />
-                        <input
-                          type="hidden"
-                          name="is_active"
-                          value={schedule.is_active ? "false" : "true"}
-                        />
-                        <RequestSubmitButton
-                          className="btn ghost"
-                          pendingLabel="Updating…"
-                          confirmMessage={
-                            schedule.is_active
-                              ? "Deactivate this schedule? It will no longer be offered for new assignments."
-                              : "Activate this schedule?"
-                          }
-                        >
-                          {schedule.is_active ? "Deactivate" : "Activate"}
-                        </RequestSubmitButton>
-                      </form>
+                      schedule.is_active &&
+                      data.settings.default_schedule_id === schedule.id ? (
+                        <span className="mut" title="Choose another default schedule before deactivating this one.">
+                          Default schedule protected
+                        </span>
+                      ) : (
+                        <form action={setScheduleActive}>
+                          <input
+                            type="hidden"
+                            name="schedule_id"
+                            value={schedule.id}
+                          />
+                          <input
+                            type="hidden"
+                            name="is_active"
+                            value={schedule.is_active ? "false" : "true"}
+                          />
+                          <RequestSubmitButton
+                            className="btn ghost"
+                            pendingLabel="Updating…"
+                            confirmMessage={
+                              schedule.is_active
+                                ? "Deactivate this schedule? It will no longer be offered for new assignments."
+                                : "Activate this schedule?"
+                            }
+                          >
+                            {schedule.is_active ? "Deactivate" : "Activate"}
+                          </RequestSubmitButton>
+                        </form>
+                      )
                     ) : null}
                   </div>
                 </article>
               ))}
+
+              {data.schedules.length === 0 ? (
+                <div className="request-empty">
+                  <strong>No work schedules configured.</strong>
+                  <span className="mut">
+                    Create the first schedule before assigning a company default.
+                  </span>
+                </div>
+              ) : null}
             </div>
           </section>
         </div>
@@ -519,6 +560,7 @@ export default async function SettingsPage({
                     type="date"
                     name="holiday_date"
                     defaultValue={editHoliday?.holiday_date ?? ""}
+                    min={editHoliday ? undefined : today}
                     required
                   />
                 </label>
@@ -527,6 +569,7 @@ export default async function SettingsPage({
                   <input
                     name="country_code"
                     maxLength={2}
+                    pattern="[A-Za-z]{2}"
                     defaultValue={editHoliday?.country_code ?? ""}
                     placeholder="PK"
                   />
@@ -535,9 +578,7 @@ export default async function SettingsPage({
 
               <AdminHolidayScopeFields
                 departments={data.departments}
-                initialCompanyWide={
-                  editHoliday?.is_company_wide ?? true
-                }
+                initialCompanyWide={editHoliday?.is_company_wide ?? true}
                 initialDepartmentId={editHoliday?.department_id}
               />
 
@@ -586,9 +627,7 @@ export default async function SettingsPage({
                     </div>
                     <span className="mut">
                       {holiday.holiday_date}
-                      {holiday.country_code
-                        ? " · " + holiday.country_code
-                        : ""}
+                      {holiday.country_code ? " · " + holiday.country_code : ""}
                     </span>
                   </div>
                   <div className="admin-record-actions">
@@ -598,20 +637,26 @@ export default async function SettingsPage({
                     >
                       Edit
                     </Link>
-                    <form action={deleteHoliday}>
-                      <input
-                        type="hidden"
-                        name="holiday_id"
-                        value={holiday.id}
-                      />
-                      <RequestSubmitButton
-                        className="btn danger"
-                        pendingLabel="Deleting…"
-                        confirmMessage="Delete this holiday? Past holidays are protected and cannot be removed."
-                      >
-                        Delete
-                      </RequestSubmitButton>
-                    </form>
+                    {holiday.holiday_date < today ? (
+                      <span className="mut" title="Past holidays are retained for attendance history.">
+                        History protected
+                      </span>
+                    ) : (
+                      <form action={deleteHoliday}>
+                        <input
+                          type="hidden"
+                          name="holiday_id"
+                          value={holiday.id}
+                        />
+                        <RequestSubmitButton
+                          className="btn danger"
+                          pendingLabel="Deleting…"
+                          confirmMessage="Delete this holiday? Past holidays are protected and cannot be removed."
+                        >
+                          Delete
+                        </RequestSubmitButton>
+                      </form>
+                    )}
                   </div>
                 </article>
               ))}
@@ -754,8 +799,7 @@ export default async function SettingsPage({
                       />
                     </div>
                     <span className="mut">
-                      {leaveType.code} ·{" "}
-                      {leaveType.is_paid ? "Paid" : "Unpaid"} ·{" "}
+                      {leaveType.code} · {leaveType.is_paid ? "Paid" : "Unpaid"} ·{" "}
                       {leaveType.default_annual_days == null
                         ? "No default quota"
                         : leaveType.default_annual_days + " days/year"}
@@ -774,32 +818,47 @@ export default async function SettingsPage({
                     >
                       Edit
                     </Link>
-                    <form action={setLeaveTypeActive}>
-                      <input
-                        type="hidden"
-                        name="leave_type_id"
-                        value={leaveType.id}
-                      />
-                      <input
-                        type="hidden"
-                        name="is_active"
-                        value={leaveType.is_active ? "false" : "true"}
-                      />
-                      <RequestSubmitButton
-                        className="btn ghost"
-                        pendingLabel="Updating…"
-                        confirmMessage={
-                          leaveType.is_active
-                            ? "Deactivate this leave type for new requests?"
-                            : "Activate this leave type?"
-                        }
-                      >
-                        {leaveType.is_active ? "Deactivate" : "Activate"}
-                      </RequestSubmitButton>
-                    </form>
+                    {leaveType.is_active && activeLeaveTypeCount <= 1 ? (
+                      <span className="mut" title="At least one active leave type is required.">
+                        Last active type protected
+                      </span>
+                    ) : (
+                      <form action={setLeaveTypeActive}>
+                        <input
+                          type="hidden"
+                          name="leave_type_id"
+                          value={leaveType.id}
+                        />
+                        <input
+                          type="hidden"
+                          name="is_active"
+                          value={leaveType.is_active ? "false" : "true"}
+                        />
+                        <RequestSubmitButton
+                          className="btn ghost"
+                          pendingLabel="Updating…"
+                          confirmMessage={
+                            leaveType.is_active
+                              ? "Deactivate this leave type for new requests?"
+                              : "Activate this leave type?"
+                          }
+                        >
+                          {leaveType.is_active ? "Deactivate" : "Activate"}
+                        </RequestSubmitButton>
+                      </form>
+                    )}
                   </div>
                 </article>
               ))}
+
+              {data.leaveTypes.length === 0 ? (
+                <div className="request-empty">
+                  <strong>No leave types configured.</strong>
+                  <span className="mut">
+                    Create the first leave type before employees submit leave requests.
+                  </span>
+                </div>
+              ) : null}
             </div>
           </section>
         </div>

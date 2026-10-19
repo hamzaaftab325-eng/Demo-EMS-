@@ -78,6 +78,11 @@ history. A schedule selected as the company default cannot be deactivated until
 another default is chosen. Deactivation preserves existing assignments and
 historical workdays.
 
+The Phase 8 UI now mirrors the database guard by identifying the current default
+schedule and suppressing its deactivation control until another default is
+selected. This avoids presenting an action that is known to be rejected by the
+canonical workflow.
+
 ## Holidays
 
 Super Admin can create and edit company-wide or department holidays. New
@@ -86,6 +91,11 @@ rewritten, and past holidays cannot be deleted.
 
 The canonical `holidays` table continues to feed attendance calculation and
 leave working-day calculation.
+
+The UI uses the configured company timezone to prevent new past-dated holidays
+at the form boundary. Existing past holidays remain editable only through the
+server-side historical rules, and the destructive delete control is not shown
+for already historical dates.
 
 ## Leave types
 
@@ -101,7 +111,8 @@ Existing attachment flags are preserved if historical data contains them; Phase
 
 Leave types are deactivated instead of deleted. Existing requests and leave
 ledger rows keep their foreign-key history. The final active leave type cannot
-be deactivated.
+be deactivated. The UI mirrors that invariant and does not offer a deactivation
+action when only one active leave type remains.
 
 ## Audit capture
 
@@ -154,6 +165,10 @@ npm run phase8:check
 GitHub Actions runs this after the Phase 7 management gate and before lint,
 TypeScript and the production Next.js build.
 
+The Phase 8 regression script also verifies the final UI safety guards and the
+repository status documentation so later changes cannot silently reintroduce a
+stale Phase 7/Phase 8 status or expose known-invalid destructive actions.
+
 ## Exit criteria
 
 Phase 8 is complete only when:
@@ -167,3 +182,20 @@ Phase 8 is complete only when:
 - security advisors show no Phase 8-specific error
 - QA residue is zero
 - production deployment succeeds
+
+## Final Phase 8 certification
+
+**Repository implementation status: COMPLETE**
+
+The repository now represents Phase 8 as a completed, stabilized feature phase.
+The final code-level gate includes the Audit Log, canonical administrative
+settings, schedule/holiday/leave-type workflows, immutable audit evidence,
+environment isolation, workflow-history protections, UI protection for known
+blocked destructive actions, empty states, generated database contracts and the
+Phase 8 CI regression check.
+
+Repository completion is distinct from a hosted-environment certification. The
+EMS Supabase project must still be the source of truth for advisor output,
+applied-migration state and zero-residue confirmation whenever production is
+re-certified. Those checks do not require additional Phase 8 product features;
+they are deployment acceptance evidence for the existing implementation.
