@@ -78,7 +78,7 @@ history. A schedule selected as the company default cannot be deactivated until
 another default is chosen. Deactivation preserves existing assignments and
 historical workdays.
 
-The Phase 8 UI now mirrors the database guard by identifying the current default
+The Phase 8 UI mirrors the database guard by identifying the current default
 schedule and suppressing its deactivation control until another default is
 selected. This avoids presenting an action that is known to be rejected by the
 canonical workflow.
@@ -154,6 +154,55 @@ All mutating acceptance tests ran inside a transaction and were rolled back.
 
 No QA rows are intentionally retained.
 
+## Hosted EMS Supabase certification — 2026-10-19
+
+The live EMS Demo Supabase project was re-certified after the correct project
+connection became available.
+
+Certified environment:
+
+- project ref: `tglqizuqzgpwscoxeulv`
+- organization: `qwluikofmctnrtoycuuy`
+- project state: `ACTIVE_HEALTHY`
+- database: PostgreSQL 17
+
+Live acceptance evidence:
+
+- Phase 8 migrations `20261002153002_phase8_admin_audit_hardening` and
+  `20261002153158_phase8_admin_workflows` are applied.
+- RLS is enabled on `audit_logs`, `company_settings`, `work_schedules`,
+  `holidays`, `leave_types`, `departments` and `schedule_change_details`.
+- All eight public Phase 8 RPCs are SECURITY INVOKER functions, explicitly
+  check `private.is_super_admin()`, and expose EXECUTE to `authenticated` only.
+- Phase 8 automatic audit triggers are installed on company settings, work
+  schedules, holidays and leave types.
+- Audit UPDATE/DELETE immutability trigger remains enabled.
+- Phase 8 table privileges preserve least privilege: audit rows cannot be
+  updated/deleted by authenticated clients, leave types/work schedules cannot
+  be directly deleted, and holiday deletion remains guarded by Super Admin RLS
+  plus the Phase 8 workflow.
+- Live invariant scan returned zero invalid work schedules, zero invalid
+  holidays, zero invalid leave types, zero invalid default schedules and zero
+  invalid company threshold configurations.
+- The live system retains five active leave types, so the final-active-type
+  guard is not currently at its boundary condition.
+- Demo and production audit history both exist and remain separated by the
+  `is_test_account` environment marker.
+- Phase 8 QA-residue scan returned zero matching temporary QA schedules,
+  holidays and leave types.
+- Supabase Security Advisor reported no Phase 8-specific error. The only current
+  security warning is project-wide Auth leaked-password protection being
+  disabled; this belongs to general production security hardening rather than
+  the Phase 8 administration feature.
+- Supabase Performance Advisor reported INFO-level items only. The unindexed
+  foreign-key findings are on employee archive/profile tables outside the Phase
+  8 feature scope; unused-index notices are retained for observation because
+  this demo environment has low traffic and insufficient workload history to
+  justify removing indexes solely from the linter signal.
+
+This hosted certification closes the environment-evidence gap that remained
+when the EMS Supabase project was not available through the connected account.
+
 ## Regression gate
 
 Run:
@@ -187,15 +236,17 @@ Phase 8 is complete only when:
 
 **Repository implementation status: COMPLETE**
 
-The repository now represents Phase 8 as a completed, stabilized feature phase.
-The final code-level gate includes the Audit Log, canonical administrative
-settings, schedule/holiday/leave-type workflows, immutable audit evidence,
-environment isolation, workflow-history protections, UI protection for known
-blocked destructive actions, empty states, generated database contracts and the
-Phase 8 CI regression check.
+**Hosted EMS Supabase certification: COMPLETE**
 
-Repository completion is distinct from a hosted-environment certification. The
-EMS Supabase project must still be the source of truth for advisor output,
-applied-migration state and zero-residue confirmation whenever production is
-re-certified. Those checks do not require additional Phase 8 product features;
-they are deployment acceptance evidence for the existing implementation.
+The repository and connected EMS Demo environment now represent Phase 8 as a
+completed and stabilized feature phase. The final implementation includes the
+Audit Log, canonical administrative settings, schedule/holiday/leave-type
+workflows, immutable audit evidence, environment isolation, workflow-history
+protections, UI protection for known blocked destructive actions, empty states,
+generated database contracts and the Phase 8 CI regression check.
+
+The live EMS Supabase certification confirms the required Phase 8 migrations,
+RLS boundaries, RPC authorization, automatic audit capture, database invariants
+and zero temporary QA residue. Remaining project-wide security/performance
+advisor notices are tracked as post-Phase-8 production-hardening work and do not
+represent missing Phase 8 product functionality.
